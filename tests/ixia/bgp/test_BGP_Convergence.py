@@ -50,7 +50,6 @@ def test_bgp_conf(duthost,tgen_ports):
         "-c 'neighbor %s activate' "
         "-c 'exit' "
         )        
-        #bgp_config_neighbor %= (DUT_AS_NUM,str(FIRST_OCTET+i)+REST_TG_OCTET,TGEN_AS_NUM,str(FIRST_OCTET+i)+REST_TG_OCTET)
         bgp_config_neighbor %= (DUT_AS_NUM,tgen_ports[i]['ip'],TGEN_AS_NUM,tgen_ports[i]['ip'])
         logger.info('Configuring BGP Neighbor %s' %tgen_ports[i]['ip'])
         duthost.shell(bgp_config_neighbor)
@@ -184,6 +183,7 @@ def test_bgp_convergence(duthost,snappi_api,tgen_ports):
             avg.append(int(dp_convergence))
             logger.info('Simulating Link Up on {} at the end of iteration {}'.format(portName,i+1))
             
+            #Link up
             ls.state = ls.UP
             response=snappi_api.set_link_state(ls)
             assert(len(response.errors)) == 0
@@ -196,7 +196,6 @@ def test_bgp_convergence(duthost,snappi_api,tgen_ports):
     #Running link flap test on all the rx ports
     for i in range(0,len(rx_port_names)):
         table.append(getAvgDPDPConvergenceTime(rx_port_names[i],flap_iterations))
-    #table.append(getAvgDPDPConvergenceTime(rx_port_names[0],flap_iterations))
     columns=['Event Name','Iterations','Avg Calculated DP/DP Convergence Time(ms)']
     logger.info("\n%s" % tabulate(table,headers=columns,tablefmt="psql"))
 
