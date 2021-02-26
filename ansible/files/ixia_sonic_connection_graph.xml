@@ -1,0 +1,24 @@
+<LabConnectionGraph>
+  <PhysicalNetworkGraphDeclaration>
+    <Devices>
+      <Device Hostname="ixia-sonic" HwSku="IXIA-tester" Type="DevIxiaChassis"/>
+      <Device Hostname="sonic-s6100-dut" HwSku="Arista-7060CX-32S-C32" Type="DevSonic"/>
+      <Device Hostname="ixia-sonic-api-serv" HwSku="IXIA-tester" Type="DevIxiaApiServ"/>
+    </Devices>
+    <DeviceInterfaceLinks>
+      <DeviceInterfaceLink BandWidth="100000" EndDevice="ixia-sonic" EndPort="Card9/Port6" StartDevice="sonic-s6100-dut" StartPort="Ethernet20"/>
+      <DeviceInterfaceLink BandWidth="100000" EndDevice="ixia-sonic" EndPort="Card9/Port7" StartDevice="sonic-s6100-dut" StartPort="Ethernet24"/>
+      <DeviceInterfaceLink BandWidth="100000" EndDevice="ixia-sonic" EndPort="Card9/Port8" StartDevice="sonic-s6100-dut" StartPort="Ethernet28"/>
+    </DeviceInterfaceLinks>
+  </PhysicalNetworkGraphDeclaration>
+  <DataPlaneGraph>
+    <DevicesL3Info Hostname="ixia-sonic">
+      <ManagementIPInterface Name="ManagementIp" Prefix="10.36.78.53/32"/>
+    </DevicesL3Info>
+    <DevicesL2Info Hostname="ixia-sonic">
+      <InterfaceVlan mode="Access" portname="Card9/Port6" vlanids=""/>
+      <InterfaceVlan mode="Access" portname="Card9/Port7" vlanids=""/>
+      <InterfaceVlan mode="Access" portname="Card9/Port8" vlanids=""/>
+    </DevicesL2Info>
+  </DataPlaneGraph>
+</LabConnectionGraph>
