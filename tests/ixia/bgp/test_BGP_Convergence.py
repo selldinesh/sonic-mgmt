@@ -14,11 +14,13 @@ def test_bgp_convergence(snappi_api,duthost,tgen_ports,conn_graph_facts,fanout_g
     2) Create a flow from TGEN1 to (N-1) TGEN ports
     3) Send Traffic from TGEN1 to (N-1) TGEN ports having the same route range
     4) Simulate link failure by bringing down one of the (N-1) TGEN Ports
+    5) Calculate the packet loss duration for convergence time
+    6) Clean up the BGP config on the dut
     Verification:
     1) Send traffic without flapping any link 
         Result: Should not observe traffic loss 
     2) Flap one of the N TGEN link
-        Result: The traffic must be routed via rest of the ports with no subsequent delta increase
+        Result: The traffic must be routed via rest of the ECMP paths
 
     Args:
         snappi_api (pytest fixture): Snappi API
