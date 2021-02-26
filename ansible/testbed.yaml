@@ -130,29 +130,15 @@
     - lab-s6100-01
   comment: Tests Dell S6100 vms
 
-- conf-name: vms-multi-dut
-  group-name: vms1-duts
-  topo: ptf64
-  ptf_image_name: docker-ptf
-  ptf: ptf-unknown
-  ptf_ip: 10.255.0.184/24
-  ptf_ipv6:
-  server: server_1
-  vm_base: VM0100
-  dut:
-    - dut-host1
-    - dut-host2
-  comment: Example Multi DUTs testbed
-
-- conf-name: vms-example-ixia-1
+- conf-name: vms-ixia-sonic
   group-name: vms6-1
   topo: t0-64
   ptf_image_name: docker-ptf-ixia
-  ptf: example-ixia-ptf-1
-  ptf_ip: 10.0.0.30/32
+  ptf: ixia-sonic-ptf
+  ptf_ip: 10.36.79.99
   ptf_ipv6:
-  server: server_6
+  server: Server_6
   vm_base: VM0600
   dut:
-    - example-s6100-dut-1
-  comment: superman
+    - sonic-s6100-dut
+  comment: Batman
