@@ -295,31 +295,6 @@ def ixia_testbed(conn_graph_facts,
 
     return config
 
-@pytest.fixture(scope = "module")
-def ixia_api_serv_ip(tbinfo):
-    """
-    In an Ixia testbed, there is no PTF docker.
-    Hence, we use ptf_ip field to store Ixia API server.
-    This fixture returns the IP address of the Ixia API server.
-    Args:
-       tbinfo (pytest fixture): fixture provides information about testbed
-    Returns:
-        Ixia API server IP
-    """
-    return tbinfo['ptf_ip']
-
-@pytest.fixture(scope = "module")
-def ixia_api_serv_port(duthosts, rand_one_dut_hostname):
-    """
-    This fixture returns the TCP port for REST API of the ixia API server.
-    Args:
-        duthost (pytest fixture): The duthost fixture.
-    Returns:
-        Ixia API server REST port.
-    """
-    duthost = duthosts[rand_one_dut_hostname]
-    return duthost.host.options['variable_manager']._hostvars[duthost.hostname]['secret_group_vars']['ixia_api_server']['rest_port']
-
 @pytest.fixture(scope='module')
 def snappi_api(ixia_api_serv_ip,
                ixia_api_serv_port):
