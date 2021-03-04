@@ -6,7 +6,7 @@ from tests.common.fixtures.conn_graph_facts import (
     conn_graph_facts, fanout_graph_facts)
 import pytest
 
-@pytest.mark.parametrize('multipath',[2,3])
+@pytest.mark.parametrize('multipath',[5])
 @pytest.mark.parametrize('convergence_test_iterations',[1])
 def test_bgp_convergence(snappi_api,
                         duthost,
