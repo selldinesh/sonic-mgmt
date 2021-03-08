@@ -26,9 +26,9 @@ def run_bgp_convergence_test(snappi_api,
     port_count = multipath+1
     # Create bgp config on dut
     duthost_bgp_config(duthost,
-                        tgen_ports,
-                        port_count,
-                        multipath) 
+                       tgen_ports,
+                       port_count,
+                       multipath) 
 
     # Create bgp config on TGEN 
     tgen_bgp_config = __tgen_bgp_config(snappi_api,
@@ -37,20 +37,20 @@ def run_bgp_convergence_test(snappi_api,
 
     # Run the convergence test by flapping all the rx links one by one and calculate the convergence values
     tgen_get_convergence_time(snappi_api,
-                                tgen_bgp_config,
-                                iteration,
-                                multipath)
+                              tgen_bgp_config,
+                              iteration,
+                              multipath)
 
     # Cleanup the dut configs after getting the convergence numbers
     cleanup_config(duthost,
-                    tgen_ports,
-                    port_count)
+                   tgen_ports,
+                   port_count)
 
 
 def duthost_bgp_config(duthost,
-                        tgen_ports,
-                        port_count,
-                        multipath):
+                       tgen_ports,
+                       port_count,
+                       multipath):
     """
     Configures BGP on the DUT with N-1 ecmp
     
@@ -96,8 +96,8 @@ def duthost_bgp_config(duthost,
 
 
 def __tgen_bgp_config(snappi_api,
-                        tgen_ports,
-                        port_count):
+                      tgen_ports,
+                      port_count):
     """
     Creating  BGP config on TGEN
     
@@ -158,9 +158,9 @@ def __tgen_bgp_config(snappi_api,
     return config
 
 def tgen_get_convergence_time(snappi_api,
-                                config,
-                                iteration,
-                                multipath):
+                              config,
+                              iteration,
+                              multipath):
     """
     Args:
         snappi_api (pytest fixture): Snappi API
@@ -168,7 +168,7 @@ def tgen_get_convergence_time(snappi_api,
         iteration: number of iterations for running convergence test on a port
     """
     rx_port_names = []
-    response=snappi_api.set_config(config)
+    response = snappi_api.set_config(config)
     assert(len(response.errors)) == 0
     for i in range(1,len(config.ports)):
         rx_port_names.append(config.ports[i].name)
@@ -183,7 +183,7 @@ def tgen_get_convergence_time(snappi_api,
         return snappi_api.get_metrics(request).flow_metrics
 
     def is_port_rx_stopped(snappi_api,
-                             port_name):
+                           port_name):
         """
         Args:
             snappi_api (pytest fixture): Snappi API
@@ -205,10 +205,10 @@ def tgen_get_convergence_time(snappi_api,
         req = snappi_api.metrics_request()
         req.bgpv4.column_names = ['sessions_total', 'sessions_up']
         results = snappi_api.get_metrics(req)
-        assert len(results.bgpv4_metrics)==multipath
+        assert len(results.bgpv4_metrics) == multipath
         for i in range(0,multipath):
-            assert results.bgpv4_metrics[i].sessions_total==1
-            assert results.bgpv4_metrics[i].sessions_up==1
+            assert results.bgpv4_metrics[i].sessions_total == 1
+            assert results.bgpv4_metrics[i].sessions_up == 1
 
     def get_avg_dpdp_convergence_time(portName):
         """
@@ -278,8 +278,8 @@ def tgen_get_convergence_time(snappi_api,
     logger.info("\n%s" % tabulate(table,headers = columns,tablefmt = "psql"))
 
 def cleanup_config(duthost,
-                    tgen_ports,
-                    port_count):
+                   tgen_ports,
+                   port_count):
     """
     Cleaning up dut config at the end of the test
     
