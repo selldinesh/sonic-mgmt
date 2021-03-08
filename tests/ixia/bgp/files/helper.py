@@ -38,7 +38,8 @@ def run_bgp_convergence_test(snappi_api,
     # Run the convergence test by flapping all the rx links one by one and calculate the convergence values
     tgen_get_convergence_time(snappi_api,
                                 tgen_bgp_config,
-                                iteration)
+                                iteration,
+                                multipath)
 
     # Cleanup the dut configs after getting the convergence numbers
     cleanup_config(duthost,
@@ -108,8 +109,9 @@ def __tgen_bgp_config(snappi_api,
     config = snappi_api.config()
     for i in range(1,port_count+1):
         config.ports.port(name = 'Test Port %d'%i,location = tgen_ports[i-1]['location'])
-        config.devices.device(name = 'Topology %d'%i,container_name = config.ports[i-1].name,device_count = 1)
-    
+        config.devices.device(name = 'Topology %d'%i)
+        config.devices[i-1].container_name = config.ports[i-1].name
+
     config.options.port_options.location_preemption = True
     layer1 = config.layer1.layer1()[-1]
     layer1.name = 'port settings'
@@ -123,28 +125,25 @@ def __tgen_bgp_config(snappi_api,
     def create_topo():
         config.devices[0].ethernet.name = 'Ethernet 1'
         config.devices[0].ethernet.ipv4.name = 'IPv4 1'
-        config.devices[0].ethernet.ipv4.address.value = tgen_ports[0]['ip']
-        config.devices[0].ethernet.ipv4.gateway.value = tgen_ports[0]['peer_ip']
-        config.devices[0].ethernet.ipv4.prefix.value = 24
+        config.devices[0].ethernet.ipv4.address = tgen_ports[0]['ip']
+        config.devices[0].ethernet.ipv4.gateway = tgen_ports[0]['peer_ip']
+        config.devices[0].ethernet.ipv4.prefix = 24
         rx_flow_name = []
         for i in range(2,port_count+1):
             ethernet_stack = config.devices[i-1].ethernet
             ethernet_stack.name = 'Ethernet %d'%i
             ipv4_stack = ethernet_stack.ipv4
             ipv4_stack.name = 'IPv4 %d'%i
-            ipv4_stack.address.value = tgen_ports[i-1]['ip']
-            ipv4_stack.gateway.value = tgen_ports[i-1]['peer_ip']
-            ipv4_stack.prefix.value = 31
+            ipv4_stack.address = tgen_ports[i-1]['ip']
+            ipv4_stack.gateway = tgen_ports[i-1]['peer_ip']
+            ipv4_stack.prefix = 31
             bgpv4_stack=ipv4_stack.bgpv4
             bgpv4_stack.name = 'BGP %d'%i
             bgpv4_stack.as_type = BGP_TYPE
-            bgpv4_stack.dut_ipv4_address.value = tgen_ports[i-1]['peer_ip']
-            bgpv4_stack.as_number.value = TGEN_AS_NUM
-            route_range = bgpv4_stack.bgpv4_route_ranges.bgpv4routerange()[-1]
-            route_range.name = "Network Group %d"%i
-            route_range.address_count = 1000
-            route_range.address.value = "200.1.0.1"
-            route_range.prefix.value = 32
+            bgpv4_stack.dut_address = tgen_ports[i-1]['peer_ip']
+            bgpv4_stack.as_number = TGEN_AS_NUM
+            route_range = bgpv4_stack.bgpv4_routes.bgpv4route(name="Network Group %d"%i)[-1]
+            route_range.addresses.bgpv4routeaddress(address='200.1.0.1', prefix=32, count=1000, step=1)
             rx_flow_name.append(route_range.name)
         return rx_flow_name
     
@@ -160,7 +159,8 @@ def __tgen_bgp_config(snappi_api,
 
 def tgen_get_convergence_time(snappi_api,
                                 config,
-                                iteration):
+                                iteration,
+                                multipath):
     """
     Args:
         snappi_api (pytest fixture): Snappi API
@@ -168,7 +168,8 @@ def tgen_get_convergence_time(snappi_api,
         iteration: number of iterations for running convergence test on a port
     """
     rx_port_names = []
-    snappi_api.set_config(config)
+    response=snappi_api.set_config(config)
+    assert(len(response.errors)) == 0
     for i in range(1,len(config.ports)):
         rx_port_names.append(config.ports[i].name)
     
@@ -196,6 +197,19 @@ def tgen_get_convergence_time(snappi_api,
             return True
         return False
 
+    def check_bgp_session_state(multipath):
+        """
+        Args:
+            multipath: ECMP value for BGP config
+        """
+        req = snappi_api.metrics_request()
+        req.bgpv4.column_names = ['sessions_total', 'sessions_up']
+        results = snappi_api.get_metrics(req)
+        assert len(results.bgpv4_metrics)==multipath
+        for i in range(0,multipath):
+            assert results.bgpv4_metrics[i].sessions_total==1
+            assert results.bgpv4_metrics[i].sessions_up==1
+
     def get_avg_dpdp_convergence_time(portName):
         """
         Args:
@@ -212,6 +226,7 @@ def tgen_get_convergence_time(snappi_api,
             response = snappi_api.set_transmit_state(ts)
             assert(len(response.errors)) == 0
             wait(20,"For Traffic To start")
+            check_bgp_session_state(multipath)
             flow_stats = get_flow_stats(snappi_api)
             tx_frame_rate = flow_stats[0].frames_tx_rate
             assert tx_frame_rate != 0
