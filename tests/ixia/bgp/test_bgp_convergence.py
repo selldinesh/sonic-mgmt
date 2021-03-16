@@ -6,7 +6,7 @@ from tests.common.fixtures.conn_graph_facts import (
     conn_graph_facts, fanout_graph_facts)
 import pytest
 
-@pytest.mark.parametrize('multipath',[2])
+@pytest.mark.parametrize('multipath',[3])
 @pytest.mark.parametrize('convergence_test_iterations',[1])
 def test_bgp_convergence(snappi_api,
                          duthost,
@@ -32,7 +32,7 @@ def test_bgp_convergence(snappi_api,
     1) Send traffic without flapping any link 
         Result: Should not observe traffic loss 
     2) Flap one of the N TGEN link
-        Result: The traffic must be routed via rest of the ECMP paths
+        Result: The traffic must be routed via rest of the ECMP paths and should not observe traffic loss
 
     Args:
         snappi_api (pytest fixture): Snappi API

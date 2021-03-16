@@ -3,6 +3,7 @@ import time
 from tabulate import tabulate
 from statistics import mean
 from tests.common.utilities import wait
+from tests.common.helpers.assertions import pytest_assert
 logger = logging.getLogger(__name__)
 
 DUT_AS_NUM = 65100
@@ -187,7 +188,7 @@ def tgen_get_convergence_time(snappi_api,
         """
         Args:
             snappi_api (pytest fixture): Snappi API
-            portName: Name of the port
+            port_name: Name of the port
             Returns true if port is down
         """
         req = snappi_api.metrics_request()
@@ -210,38 +211,53 @@ def tgen_get_convergence_time(snappi_api,
             assert results.bgpv4_metrics[i].sessions_total == 1
             assert results.bgpv4_metrics[i].sessions_up == 1
 
-    def get_avg_dpdp_convergence_time(portName):
+    def get_avg_dpdp_convergence_time(port_name,rx_port_names,k):
         """
         Args:
-            portName: Name of the port
+            port_name: Name of the port
+            rx_port_names:List of rx port names
+            k: index of port_name from rx_port_names
+
         """
         table,avg = [],[]
+        except_index_list = list(range(len(rx_port_names)))[:k] + list(range(len(rx_port_names)))[k+1:]
         for i in range(0,iteration):
-            logger.info('|---- {} Link Flap Iteration : {} ----|'.format(portName,i+1))
-            
+            loss_sum1,loss_sum2 = 0,0
+            logger.info('|---- {} Link Flap Iteration : {} ----|'.format(port_name,i+1))
             #Start Traffic
             logger.info('Starting Traffic')
             ts = snappi_api.transmit_state()
             ts.state = ts.START
             response = snappi_api.set_transmit_state(ts)
             assert(len(response.errors)) == 0
-            wait(20,"For Traffic To start")
+            wait(10,"For Traffic To start")
             check_bgp_session_state(multipath)
             flow_stats = get_flow_stats(snappi_api)
             tx_frame_rate = flow_stats[0].frames_tx_rate
             assert tx_frame_rate != 0
 
             #Link Flap
-            logger.info('Simulating Link Failure on {} link'.format(portName))
+            logger.info('Simulating Link Failure on {} link'.format(port_name))
             ls = snappi_api.link_state()
-            ls.port_names = [portName]
+            ls.port_names = [port_name]
             ls.state = ls.DOWN
             response = snappi_api.set_link_state(ls)
             assert(len(response.errors)) == 0
             wait(10,"For Link to go down")
-            assert is_port_rx_stopped(snappi_api,portName) == True
+            assert is_port_rx_stopped(snappi_api,port_name) == True
             flow_stats = get_flow_stats(snappi_api)
+            for m,n in enumerate(except_index_list):
+                loss_sum1 += flow_stats[n].loss
+            wait(10,"For loss to reduce")
+            flow_stats = get_flow_stats(snappi_api)
+            for m,n in enumerate(except_index_list):
+                loss_sum2 += flow_stats[n].loss
+            if loss_sum2 > loss_sum1:
+                pytest_assert(False,"Traffic has not converged after link flap")
+            else:
+                logger.info('Traffic has converged after link flap')
             tx_frame_rate = flow_stats[0].frames_tx_rate
+            logger.info('tx_frame_rate {}'.format(tx_frame_rate))
             logger.info(tx_frame_rate)
             
             # Stop traffic
@@ -254,26 +270,29 @@ def tgen_get_convergence_time(snappi_api,
             flow_stats = get_flow_stats(snappi_api)
             assert flow_stats[0].frames_tx_rate == 0
             tx_frames = flow_stats[0].frames_tx
+            logger.info('tx_frames {}'.format(tx_frames))
             rx_frames = sum([fs.frames_rx for fs in flow_stats])
+            logger.info('rx_frames {}'.format(rx_frames))
             
             # Calculate DPDP Convergence
             dp_convergence = (tx_frames - rx_frames) * 1000 / tx_frame_rate
             logger.info("DP/DP Convergence Time: {} ms".format(int(dp_convergence)))  
             avg.append(int(dp_convergence))
-            logger.info('Simulating Link Up on {} at the end of iteration {}'.format(portName,i+1))
+            logger.info('Simulating Link Up on {} at the end of iteration {}'.format(port_name,i+1))
             
             #Link up at the end of iteration
             ls.state = ls.UP
             response = snappi_api.set_link_state(ls)
             assert(len(response.errors)) == 0
-        table.append('%s Link Failure'%portName)
+        table.append('%s Link Failure'%port_name)
         table.append(iteration)
         table.append(mean(avg))
         return table
     table = []
     #Iterating link flap test on all the rx ports
-    for i in range(0,len(rx_port_names)):
-        table.append(get_avg_dpdp_convergence_time(rx_port_names[i]))
+    for i,port_name in enumerate(rx_port_names):
+        table.append(get_avg_dpdp_convergence_time(port_name,rx_port_names,i))
+    
     columns = ['Event Name','Iterations','Avg Calculated DP/DP Convergence Time(ms)']
     logger.info("\n%s" % tabulate(table,headers = columns,tablefmt = "psql"))
 
