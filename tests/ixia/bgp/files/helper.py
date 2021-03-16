@@ -220,9 +220,9 @@ def tgen_get_convergence_time(snappi_api,
 
         """
         table,avg = [],[]
-        except_index_list = list(range(len(rx_port_names)))[:k] + list(range(len(rx_port_names)))[k+1:]
+        #except_index_list = list(range(len(rx_port_names)))[:k] + list(range(len(rx_port_names)))[k+1:]
         for i in range(0,iteration):
-            loss_sum1,loss_sum2 = 0,0
+            sum1,sum2 = 0,0
             logger.info('|---- {} Link Flap Iteration : {} ----|'.format(port_name,i+1))
             #Start Traffic
             logger.info('Starting Traffic')
@@ -246,13 +246,17 @@ def tgen_get_convergence_time(snappi_api,
             wait(10,"For Link to go down")
             assert is_port_rx_stopped(snappi_api,port_name) == True
             flow_stats = get_flow_stats(snappi_api)
-            for m,n in enumerate(except_index_list):
-                loss_sum1 += flow_stats[n].loss
+            for flow in flow_stats:
+                if flow.port_rx == port_name:
+                    continue
+                sum1+=flow.loss
             wait(10,"For loss to reduce")
             flow_stats = get_flow_stats(snappi_api)
-            for m,n in enumerate(except_index_list):
-                loss_sum2 += flow_stats[n].loss
-            if loss_sum2 > loss_sum1:
+            for flow in flow_stats:
+                if flow.port_rx == port_name:
+                    continue
+                sum2+=flow.loss
+            if sum2 > sum1:
                 pytest_assert(False,"Traffic has not converged after link flap")
             else:
                 logger.info('Traffic has converged after link flap')
@@ -270,9 +274,7 @@ def tgen_get_convergence_time(snappi_api,
             flow_stats = get_flow_stats(snappi_api)
             assert flow_stats[0].frames_tx_rate == 0
             tx_frames = flow_stats[0].frames_tx
-            logger.info('tx_frames {}'.format(tx_frames))
             rx_frames = sum([fs.frames_rx for fs in flow_stats])
-            logger.info('rx_frames {}'.format(rx_frames))
             
             # Calculate DPDP Convergence
             dp_convergence = (tx_frames - rx_frames) * 1000 / tx_frame_rate
