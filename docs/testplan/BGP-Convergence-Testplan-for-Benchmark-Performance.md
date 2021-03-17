@@ -21,6 +21,7 @@
     - [Test case # 3 - Failover convergence with local link failure](#Test-case--3--Failover-convergence-with-local-link-failure) 
       - [Test objective](#Test-objective-2)
       - [Test steps](#Test-steps-2)
+      - [Test results](#Test-results-2)
     - [Call for action](#Call-for-action)
 
 ## Overview
@@ -85,13 +86,21 @@ Measure the convergence time when remote link failure event happens with in the 
 * In general the convergence value will fall in certain range. In order to achieve proper results, run the test multiple times and average out the test results. 
 * Set it back to default configuration.
 #### Test results
-![Single remote link failure](Img/Single_Remote_Link_Failure.png)
+| Event | Number Of IPv4 Routes  | Convergence (ms)  |
+| :---:   | :-: | :-: |
+| Withdraw Routes | 1K | 388 |
+| Withdraw Routes | 8K | 2870 |
+| Withdraw Routes | 16K | 6188 |
 
 For above test case, below are the test results when multiple remote link fails.
 
 ![Multiple link failure](Img/Multi_link_failure.png)
 
-![Multiple remote link failure](Img/Multiple_Remote_Link_Failure.png)
+| Event | Number Of IPv4 Routes  | Convergence (ms)  |
+| :---:   | :-: | :-: |
+| Withdraw Routes | 1K | 438 |
+| Withdraw Routes | 8K | 2800 |
+| Withdraw Routes | 16K | 7176 |
 
 ### Test case # 2 – RIB-IN Convergence 
 #### Test objective
@@ -118,11 +127,23 @@ Measure the convergence time to install the routes in its RIB and then in its FI
 * In general the convergence value will fall in certain range. In order to achieve proper results, run the test multiple times and average out the test results. 
 * Set it back to default configuration.
 #### Test results
-![RIB-IN Convergence](Img/RIB-IN_convergence_test.png)
+| Event | Number Of IPv4 Routes  | Convergence (ms)  |
+| :---:   | :-: | :-: |
+| Advertise Routes | 1K | 493 |
+| Advertise Routes | 8K | 2953 |
+| Advertise Routes | 64K | 28301 |
+| Advertise Routes | 98K | 43109 |
+| Advertise Routes | 196K | 90615 |
 
 In order to measure RIB-IN capacity of the switch, we can follow the same test methodology as RIB-IN convergence test. Below are the results for RIB-IN capacity test.
 
-![RIB-IN Capacity Test](Img/RIB-IN_Capacity_Test.png)
+| Event | Number Of IPv4 Routes  | Convergence (ms)  | Loss % |
+| :---:   | :-: | :-: | :-: |
+| Advertise Routes | 256K | - | 25 |
+| Advertise Routes | 198K | - | 0.50 |
+| Advertise Routes | 196K | 85079 | 0 |
+| Advertise Routes | 195K | 84487 | 0 |
+| Advertise Routes | 194K | 83285 | 0 |
 
 ### Test case # 3 - Failover convergence with local link failure 
 #### Test objective
@@ -145,5 +166,15 @@ Measure the convergence time when local link failure event happens with in the n
 * Verify that the traffic is re-balanced and use the other available path to route the traffic.
 * Compute the failover convergence by the below formula
 * Data Convergence Time(seconds) = (Tx Frames - Rx Frames) / Tx Frame Rate
+
+### Test Results
+Below table is the result of 3 way ECMP for 4 link flap iterations
+| Event Name | Iterations  | Avg Calculated Data Convergence Time(ms)  |
+| :---:   | :-: | :-: |
+| Test_Port_2 Link Failure | 4 | 26.75 |
+| Test_Port_3 Link Failure | 4 | 55 |
+| Test_Port_4 Link Failure | 4 | 43 |
+
 ### Call for action
 * Solicit experience in multi-DUT system test scenarios.
+
