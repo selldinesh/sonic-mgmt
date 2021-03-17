@@ -1,5 +1,3 @@
-import pytest
-import time
 from tabulate import tabulate
 from statistics import mean
 from tests.common.utilities import wait
