@@ -18,6 +18,9 @@
       - [Test objective](#Test-objective-1)
       - [Test steps](#Test-steps-1)
       - [Test results](#Test-results-1)
+    - [Test case # 3 - Failover convergence with local link failure](#Test-case--3--Failover-convergence-with-local-link-failure) 
+      - [Test objective](#Test-objective-2)
+      - [Test steps](#Test-steps-2)
     - [Call for action](#Call-for-action)
 
 ## Overview
