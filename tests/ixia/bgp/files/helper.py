@@ -109,7 +109,7 @@ def __tgen_bgp_config(snappi_api,
     """
     config = snappi_api.config()
     for i in range(1,port_count+1):
-        config.ports.port(name = 'Test Port %d'%i,location = tgen_ports[i-1]['location'])
+        config.ports.port(name = 'Test_Port_%d'%i,location = tgen_ports[i-1]['location'])
         config.devices.device(name = 'Topology %d'%i)
         config.devices[i-1].container_name = config.ports[i-1].name
 
@@ -295,7 +295,7 @@ def tgen_get_convergence_time(snappi_api,
     for i,port_name in enumerate(rx_port_names):
         table.append(get_avg_dpdp_convergence_time(port_name,rx_port_names,i))
     
-    columns = ['Event Name','Iterations','Avg Calculated DP/DP Convergence Time(ms)']
+    columns = ['Event Name','Iterations','Avg Calculated Data Convergence Time(ms)']
     logger.info("\n%s" % tabulate(table,headers = columns,tablefmt = "psql"))
 
 def cleanup_config(duthost,
