@@ -18,7 +18,7 @@ def run_bgp_convergence_test(snappi_api,
     Run BGP Convergence test
     
     Args:
-        snappi_api (pytest fixture): Snappi API
+        snappi_api (pytest fixture): snappi API
         duthost (pytest fixture): duthost fixture
         tgen_ports (pytest fixture): Ports mapping info of T0 testbed
         iteration: number of iterations for running convergence test on a port
@@ -103,7 +103,7 @@ def __tgen_bgp_config(snappi_api,
     Creating  BGP config on TGEN
     
     Args:
-        snappi_api (pytest fixture): Snappi API
+        snappi_api (pytest fixture): snappi API
         tgen_ports (pytest fixture): Ports mapping info of T0 testbed
         port_count: multipath + 1
     """
@@ -164,7 +164,7 @@ def tgen_get_convergence_time(snappi_api,
                               multipath):
     """
     Args:
-        snappi_api (pytest fixture): Snappi API
+        snappi_api (pytest fixture): snappi API
         config: TGEN config
         iteration: number of iterations for running convergence test on a port
     """
@@ -187,7 +187,7 @@ def tgen_get_convergence_time(snappi_api,
                            port_name):
         """
         Args:
-            snappi_api (pytest fixture): Snappi API
+            snappi_api (pytest fixture): snappi API
             port_name: Name of the port
             Returns true if port is down
         """

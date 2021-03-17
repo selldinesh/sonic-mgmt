@@ -299,7 +299,7 @@ def ixia_testbed(conn_graph_facts,
 def snappi_api(ixia_api_serv_ip,
                ixia_api_serv_port):
     """
-    Snappi session fixture for snappi Tgen API
+    snappi session fixture for snappi Tgen API
     Args:
         ixia_api_serv_ip (pytest fixture): ixia_api_serv_ip fixture
         ixia_api_serv_port (pytest fixture): ixia_api_serv_port fixture.
