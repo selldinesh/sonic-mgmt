@@ -120,5 +120,27 @@ Measure the convergence time to install the routes in its RIB and then in its FI
 In order to measure RIB-IN capacity of the switch, we can follow the same test methodology as RIB-IN convergence test. Below are the results for RIB-IN capacity test.
 
 ![RIB-IN Capacity Test](Img/RIB-IN_Capacity_Test.png)
+
+### Test case # 3 - Failover convergence with local link failure 
+#### Test objective
+Measure the convergence time when local link failure event happens with in the network.
+<p float="left">
+  <img src="Img/Local_Link_Failure.png" width="500" hspace="50"/>
+</p>
+
+#### Test steps
+* Configure IPv4 EBGP sessions between Keysight ports and the SONiC switch.
+* Advertise IPv4 routes along with AS number via configured IPv4 BGP sessions.
+* Configure and advertise same IPv4 routes from both the test ports.
+* Configure another IPv4 session to send the traffic. This is the server port from which traffic will be sent to the VIP addresses.
+* Start all protocols and verify that IPv4 BGP neighborship is established.
+* Create a data traffic between the server port and receiver ports where the same VIP addresses are configured and enable tracking by "Destination Endpoint" and by "Destination session description".
+* Set the desired threshold value for receiving traffic. By default it will be set to 95% of expected receiving rate.
+* Apply and start the data traffic.
+* Verify that traffic is equally distributed between the receiving ports without any loss.
+* Simulate local link failure by making port down on test tool. 
+* Verify that the traffic is re-balanced and use the other available path to route the traffic.
+* Compute the failover convergence by the below formula
+* Data Convergence Time(seconds) = (Tx Frames - Rx Frames) / Tx Frame Rate
 ### Call for action
 * Solicit experience in multi-DUT system test scenarios.
