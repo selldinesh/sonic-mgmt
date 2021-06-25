@@ -39,10 +39,9 @@ def snappi_api_serv_port(duthosts, rand_one_dut_hostname):
         snappi API server port.
     """
     duthost = duthosts[rand_one_dut_hostname]
-    #return (duthost.host.options['variable_manager'].
-    #        _hostvars[duthost.hostname]['secret_group_vars']
-    #        ['snappi_api_server']['rest_port'])
-    return '443'
+    return (duthost.host.options['variable_manager'].
+            _hostvars[duthost.hostname]['secret_group_vars']
+            ['snappi_api_server']['rest_port'])
 
 
 @pytest.fixture(scope='module')
