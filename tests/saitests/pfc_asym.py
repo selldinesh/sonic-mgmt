@@ -57,7 +57,7 @@ class PfcAsymBaseTest(ThriftInterfaceDataPlane):
 
     def setUp(self):
         ThriftInterfaceDataPlane.setUp(self)
-        switch_init(self.client)      
+        switch_init(self.client)
         self.dataplane = ptf.dataplane_instance
 
         self.server_ports = self.test_params['server_ports']

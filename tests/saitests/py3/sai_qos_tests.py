@@ -723,7 +723,7 @@ class TunnelDscpToPgMapping(sai_base_test.ThriftInterfaceDataPlane):
                 ip_ecn=ecn,
                 ip_ttl=64
                 )
-        
+
         ipinip_packet = simple_ipv4ip_packet(
                             eth_dst=active_tor_mac,
                             eth_src=standby_tor_mac,
@@ -4213,7 +4213,7 @@ class PCBBPFCTest(sai_base_test.ThriftInterfaceDataPlane):
                                             dst_ip=dst_port_ip,
                                             ecn=ecn,
                                             packet_size=packet_size)
-            
+
             # Send packets short of triggering pfc
             send_packet(self, src_port_id, pkt, pkts_num_trig_pfc)
             time.sleep(8)
@@ -4237,4 +4237,3 @@ class PCBBPFCTest(sai_base_test.ThriftInterfaceDataPlane):
         finally:
             # Enable tx on dest port
             self.sai_thrift_port_tx_enable(self.client, asic_type, [dst_port_id])
-

@@ -695,7 +695,7 @@ class TestConfigInterface():
         cli_ns_option = sample_intf['cli_ns_option']
 
         regex_int = re.compile(r'(\S+)\s+[\d,N\/A]+\s+(\w+)\s+(\d+)\s+[\w\/]+\s+([\w\/]+)\s+(\w+)\s+(\w+)\s+(\w+)')
-        
+
         def _port_status(expected_state):
             admin_state = ""
             show_intf_status = dutHostGuest.shell('SONIC_CLI_IFACE_MODE={0} show interfaces status {1} | grep -w {1}'.format(ifmode, test_intf))
@@ -904,7 +904,7 @@ class TestShowIP():
         spine_ports['alias'] = list()
 
         for key, value in minigraph_neighbors.items():
-            if (key in setup['physical_interfaces'] 
+            if (key in setup['physical_interfaces']
                     and ('T2' in value['name'] or (tbinfo['topo']['type'] == 't2' and 'T3' in value['name']))):
                 spine_ports['interface'].append(key)
                 spine_ports['alias'].append(setup['port_name_map'][key])

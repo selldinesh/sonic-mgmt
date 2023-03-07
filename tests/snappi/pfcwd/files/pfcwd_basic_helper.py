@@ -70,7 +70,7 @@ def run_pfcwd_basic_test(api,
     detect_time_sec = get_pfcwd_detect_time(host_ans=duthost, intf=dut_port) / 1000.0
     restore_time_sec = get_pfcwd_restore_time(host_ans=duthost, intf=dut_port) / 1000.0
 
-    """ Warm up traffic is initially sent before any other traffic to prevent pfcwd 
+    """ Warm up traffic is initially sent before any other traffic to prevent pfcwd
     fake alerts caused by non-incremented packet counters during pfcwd detection periods"""
     warm_up_traffic_dur_sec = WARM_UP_TRAFFIC_DUR
     warm_up_traffic_delay_sec = 0
@@ -283,7 +283,7 @@ def __run_traffic(api, config, all_flow_names, exp_dur_sec):
 
     logger.info('Wait for Arp to Resolve ...')
     wait_for_arp(api, max_attempts=30, poll_interval_sec=2)
-    
+
     logger.info('Starting transmit on all flows ...')
     ts = api.transmit_state()
     ts.state = ts.START

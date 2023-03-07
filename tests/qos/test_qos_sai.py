@@ -1591,8 +1591,8 @@ class TestQosSai(QosSaiBase):
     def testQosSaiSeparatedDscpToPgMapping(self, duthost, request, ptfhost, dutTestParams, dutConfig, direction, dut_qos_maps):
         """
             Test QoS SAI DSCP to PG mapping ptf test.
-            Since we are using different DSCP_TO_TC_MAP on uplink/downlink port, the test case also need to 
-            run separately 
+            Since we are using different DSCP_TO_TC_MAP on uplink/downlink port, the test case also need to
+            run separately
 
             Args:
                 duthost (AnsibleHost)
@@ -1612,7 +1612,7 @@ class TestQosSai(QosSaiBase):
             pytest.skip("Skip this test since separated DSCP_TO_TC_MAP is not applied")
         if "dualtor" in dutTestParams['topo']:
             pytest.skip("Skip this test case on dualtor testbed")
-            
+
         testParams = dict()
         testParams.update(dutTestParams["basicParams"])
         if direction == "downstream":

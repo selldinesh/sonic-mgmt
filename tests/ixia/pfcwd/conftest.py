@@ -7,5 +7,3 @@ def setup_cgm_alpha_cisco(duthost):
     duthost.shell("mmuconfig -p pg_lossless_100000_300m_profile -a -6")
     yield
     duthost.shell("mmuconfig -p pg_lossless_100000_300m_profile -a -2")
-
-

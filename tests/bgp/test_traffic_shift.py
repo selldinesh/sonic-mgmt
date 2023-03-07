@@ -231,8 +231,8 @@ def verify_current_routes_announced_to_neighs(dut_host, neigh_hosts, orig_routes
     logger.info("Verifying all the original routes(ipv{}) are announced to bgp neighbors".format(ip_ver))
     cur_routes_on_all_nbrs.update(parse_routes_on_neighbors(dut_host, neigh_hosts, ip_ver))
     # Compare current routes after TSB with original routes advertised to neighbors
-    if cur_routes_on_all_nbrs != orig_routes_on_all_nbrs:     
-        return False           
+    if cur_routes_on_all_nbrs != orig_routes_on_all_nbrs:
+        return False
     return True
 
 def check_and_log_routes_diff(duthost, neigh_hosts, orig_routes_on_all_nbrs, cur_routes_on_all_nbrs,ip_ver):
@@ -241,7 +241,7 @@ def check_and_log_routes_diff(duthost, neigh_hosts, orig_routes_on_all_nbrs, cur
     if cur_nbrs != orig_nbrs:
         logger.warn("Neighbor list mismatch: {}".format(cur_nbrs ^ orig_nbrs))
         return False
-    
+
     routes_dut = parse_rib(duthost, ip_ver)
     all_diffs_in_host_aspath = True
     for hostname in orig_routes_on_all_nbrs.keys():
@@ -439,7 +439,7 @@ def test_TSA_B_C_with_no_neighbors(duthosts, enum_rand_one_per_hwsku_frontend_ho
 
 
 @pytest.mark.disable_loganalyzer
-def test_TSA_TSB_with_config_reload(duthosts, enum_rand_one_per_hwsku_frontend_hostname, ptfhost, nbrhosts, 
+def test_TSA_TSB_with_config_reload(duthosts, enum_rand_one_per_hwsku_frontend_hostname, ptfhost, nbrhosts,
                                     nbrhosts_to_dut, bgpmon_setup_teardown, traffic_shift_community, tbinfo):
     """
     Test TSA after config save and config reload
@@ -558,4 +558,3 @@ def test_load_minigraph_with_traffic_shift_away(duthosts, enum_rand_one_per_hwsk
         if not wait_until(300, 3, 0,verify_current_routes_announced_to_neighs, duthost, nbrhosts, orig_v6_routes, cur_v6_routes, 6):
             if not check_and_log_routes_diff(duthost,nbrhosts, orig_v6_routes, cur_v6_routes, 6):
                 pytest.fail("Not all ipv6 routes are announced to neighbors")
-

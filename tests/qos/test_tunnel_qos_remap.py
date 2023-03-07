@@ -43,7 +43,7 @@ def check_running_condition(tbinfo, duthost):
     """
     # Check dualtor topo
     pytest_require("dualtor" in tbinfo["topo"]["name"], "Only run on dualtor testbed.", True)
-    
+
     # Check tunnel_qos_remap is enabled
     pytest_require(is_tunnel_qos_remap_enabled(duthost), "Only run when tunnel_qos_remap is enabled", True)
 
@@ -63,7 +63,7 @@ def test_encap_dscp_rewrite(ptfhost, upper_tor_host, lower_tor_host, toggle_all_
     1. Toggle mux to lower tor, so all mux ports are standby on upper_tor
     2. Generate packets with certain DSCP value
     3. Send the generated packets via portchannels
-    4. Verify the packets are encapped with expected DSCP value 
+    4. Verify the packets are encapped with expected DSCP value
     """
     DSCP_COMBINATIONS = [
         # DSCP in generated packets, expected DSCP in encapped packets
@@ -77,7 +77,7 @@ def test_encap_dscp_rewrite(ptfhost, upper_tor_host, lower_tor_host, toggle_all_
     ]
     dualtor_meta = dualtor_info(ptfhost, upper_tor_host, lower_tor_host, tbinfo)
     active_tor_mac = lower_tor_host.facts['router_mac']
-    
+
     t1_ports = get_t1_active_ptf_ports(upper_tor_host, tbinfo)
     # Always select the last port in the last LAG as src_port
     src_port = _last_port_in_last_lag(t1_ports)
@@ -109,7 +109,7 @@ def test_bounced_back_traffic_in_expected_queue(ptfhost, upper_tor_host, lower_t
     1. Toggle mux to lower tor, so all mux ports are standby on upper_tor
     2. Generate packets with certain DSCP value
     3. Send the generated packets via portchannels
-    4. Verify the packets are outgoing from expected queue 
+    4. Verify the packets are outgoing from expected queue
     """
     TEST_DATA = [
         #DSCP QUEUE
@@ -162,7 +162,7 @@ def test_tunnel_decap_dscp_to_queue_mapping(ptfhost, rand_selected_dut, rand_uns
     1. Toggle mux to the randomly selected ToR
     2. Generate IPinIP packets with different DSCP combination (inner and outer)
     3. Send the generated packets via portchannels
-    4. Verify the packets are decapped, and outgoing from the expected queue 
+    4. Verify the packets are decapped, and outgoing from the expected queue
     """
     dualtor_meta = dualtor_info(ptfhost, rand_unselected_dut, rand_selected_dut, tbinfo)
     t1_ports = get_t1_active_ptf_ports(rand_selected_dut, tbinfo)
@@ -196,7 +196,7 @@ def test_tunnel_decap_dscp_to_queue_mapping(ptfhost, rand_selected_dut, rand_uns
             time.sleep(2)
             # Verify counter at expected queue at the server facing port
             pytest_assert(check_queue_counter(rand_selected_dut, [dualtor_meta['selected_port']], tunnel_qos_map['inner_dscp_to_queue_map'][inner_dscp], PKT_NUM),
-                         "The queue counter for DSCP {} Queue {} is not as expected".format(inner_dscp, tunnel_qos_map['inner_dscp_to_queue_map'][inner_dscp])) 
+                         "The queue counter for DSCP {} Queue {} is not as expected".format(inner_dscp, tunnel_qos_map['inner_dscp_to_queue_map'][inner_dscp]))
 
     finally:
         counter_poll_config(rand_selected_dut, 'queue', 10000)
@@ -209,9 +209,9 @@ def test_separated_qos_map_on_tor(ptfhost, rand_selected_dut, rand_unselected_du
     1. Build IPinIP encapsulated packet with dummy src ip and dst ip (must not be the loopback address of dualtor)
     2. Ingress the packet from uplink port, verify the packets egressed from expected queue
     3. Build regular packet with dst_ip = dummy IP (routed by default route)
-    4. Ingress the packet from downlink port, verify the packets egressed from expected queue 
+    4. Ingress the packet from downlink port, verify the packets egressed from expected queue
     """
-    pytest_require(separated_dscp_to_tc_map_on_uplink(rand_selected_dut, dut_qos_maps), 
+    pytest_require(separated_dscp_to_tc_map_on_uplink(rand_selected_dut, dut_qos_maps),
                     "Skip test because separated QoS map is not applied")
     dualtor_meta = dualtor_info(ptfhost, rand_unselected_dut, rand_selected_dut, tbinfo)
     t1_ports = get_t1_active_ptf_ports(rand_selected_dut, tbinfo)
@@ -235,7 +235,7 @@ def test_separated_qos_map_on_tor(ptfhost, rand_selected_dut, rand_unselected_du
     DOWN_LINK_TEST_DATA = {
         # DSCP, Expected queue
         (2, 1),
-        (6, 1) 
+        (6, 1)
     }
     try:
         # uplink port test
@@ -243,11 +243,11 @@ def test_separated_qos_map_on_tor(ptfhost, rand_selected_dut, rand_unselected_du
         src_port = _last_port_in_last_lag(t1_ports)
         for inner_dscp, outer_dscp, queue in UP_LINK_TEST_DATA:
             # We use the IPinIP packet only
-            _, exp_packet = build_testing_packet(src_ip=DUMMY_IP, 
+            _, exp_packet = build_testing_packet(src_ip=DUMMY_IP,
                                               dst_ip=dualtor_meta['target_server_ip'],
                                               active_tor_mac=active_tor_mac,
                                               standby_tor_mac=dualtor_meta['standby_tor_mac'],
-                                              active_tor_ip='20.2.0.22', # The active/standby tor ip must be fake value so that the pack is not decaped 
+                                              active_tor_ip='20.2.0.22', # The active/standby tor ip must be fake value so that the pack is not decaped
                                               standby_tor_ip='20.2.0.21',
                                               inner_dscp=inner_dscp,
                                               outer_dscp=outer_dscp)
@@ -262,7 +262,7 @@ def test_separated_qos_map_on_tor(ptfhost, rand_selected_dut, rand_unselected_du
             # Since the packet will not be decaped by active ToR, we expected to see the packet egress from any uplink ports
             pytest_assert(check_queue_counter(rand_selected_dut, tor_pc_intfs, queue, PKT_NUM),
                          "Uplink test: the queue counter for DSCP {} Queue {} is not as expected".format(outer_dscp, queue))
-        
+
         # downlink port test
         src_port = dualtor_meta['target_server_port']
         for dscp, queue in DOWN_LINK_TEST_DATA:
@@ -270,7 +270,7 @@ def test_separated_qos_map_on_tor(ptfhost, rand_selected_dut, rand_unselected_du
                                     ip_src=dualtor_meta['target_server_ip'],
                                     ip_dst=DUMMY_IP, # A dummy IP that will hit default route,
                                     ip_dscp=dscp)
-            
+
             # Clear queuecounters before sending traffic
             rand_selected_dut.shell('sonic-clear queuecounters')
             time.sleep(1)
@@ -429,7 +429,7 @@ def test_tunnel_decap_dscp_to_pg_mapping(rand_selected_dut, ptfhost, dut_config,
     # TODO: Get the cell size for other ASIC
     if asic == 'th2':
         cell_size = 208
-    else: 
+    else:
         cell_size = 256
 
     tunnel_qos_map = load_tunnel_qos_map()
@@ -449,7 +449,7 @@ def test_tunnel_decap_dscp_to_pg_mapping(rand_selected_dut, ptfhost, dut_config,
             "platform_asic": dut_config["platform_asic"],
             "cell_size": cell_size
         })
-    
+
     run_ptf_test(
         ptfhost,
         test_case="sai_qos_tests.TunnelDscpToPgMapping",

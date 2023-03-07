@@ -582,7 +582,7 @@ def __verify_results(rows,
                 """ Once PFC watchdog is triggered, it will impact bi-directional traffic """
                 pytest_assert(tx_frames > rx_frames,
                               '{} should have dropped packets'.format(flow_name))
-            
+
             elif trigger_pfcwd and src_port_id == pause_port_id:
                 if is_mlnx_device:
                     """ During a pfc storm with pfcwd triggered, Mellanox devices do not drop Rx packets """

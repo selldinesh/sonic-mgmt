@@ -1216,4 +1216,3 @@ class TestGratArp(object):
                               "MAC {} didn't change in ARP table".format(original_mac))
 
             check_one_neighbor_present(duthosts, duthost, asic, neighbor, nbrhosts, all_cfg_facts)
-
