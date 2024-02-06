@@ -13,6 +13,7 @@ from tests.snappi_tests.pfc.files.helper import run_pfc_response_time_test
 pytestmark = [pytest.mark.topology('tgen')]
 
 
+@pytest.mark.parametrize('intf_type', ['IP'])
 def test_response_time(snappi_api,                   # noqa F811
                        snappi_testbed_config,        # noqa F811
                        conn_graph_facts,             # noqa F811
@@ -22,7 +23,8 @@ def test_response_time(snappi_api,                   # noqa F811
                        rand_one_dut_portname_oper_up,
                        lossless_prio_list,           # noqa F811
                        lossy_prio_list,              # noqa F811
-                       prio_dscp_map):               # noqa F811
+                       prio_dscp_map,
+                       intf_type):               # noqa F811
     """
     Test if IEEE 802.3X pause (a.k.a., global pause) will impact any priority
 
@@ -37,7 +39,7 @@ def test_response_time(snappi_api,                   # noqa F811
         lossless_prio_list (pytest fixture): list of all the lossless priorities
         lossy_prio_list (pytest fixture): list of all the lossy priorities
         prio_dscp_map (pytest fixture): priority vs. DSCP map (key = priority).
-
+        intf_type (pytest paramenter): IP or VLAN interface type
     Returns:
         N/A
     """
@@ -62,4 +64,5 @@ def test_response_time(snappi_api,                   # noqa F811
                                test_prio_list=test_prio_list,
                                bg_prio_list=bg_prio_list,
                                prio_dscp_map=prio_dscp_map,
-                               test_traffic_pause=False)
+                               test_traffic_pause=False,
+                               intf_type=intf_type,)

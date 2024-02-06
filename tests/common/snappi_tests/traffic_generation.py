@@ -944,13 +944,15 @@ def verify_egress_queue_frame_count(duthost,
 
 
 def generate_pre_pause_flows(testbed_config,
-                             snappi_extra_params):
+                              snappi_extra_params,
+                              intf_type):
     """
     Generate background configurations of flows. Test flows and background flows are also known as data flows.
 
     Args:
         testbed_config (obj): testbed L1/L2/L3 configuration
         snappi_extra_params (SnappiTestParams obj): additional parameters for Snappi traffic
+        intf_type : IP or VLAN interface type
     """
     base_flow_config = snappi_extra_params.base_flow_config
     pytest_assert(base_flow_config is not None, "Cannot find base flow configuration")
@@ -962,8 +964,14 @@ def generate_pre_pause_flows(testbed_config,
     bg_flow.tx_rx.port.rx_name = testbed_config.ports[base_flow_config["tx_port_id"]].name
 
     eth, ipv4 = bg_flow.packet.ethernet().ipv4()
-    eth.src.value = base_flow_config["rx_mac"]
-    eth.dst.value = base_flow_config["tx_mac"]
+    if intf_type == 'VLAN' or intf_type == 'vlan':
+        eth.src.value = base_flow_config["rx_mac"]
+        eth.dst.value = base_flow_config["tx_mac"]
+    elif intf_type == 'IP' or intf_type == 'ip':
+        eth.src.value = base_flow_config["tx_mac"]
+        eth.dst.value = base_flow_config["rx_mac"]
+    else:
+        pytest_assert(False, "Invalid interface type given")
 
     ipv4.src.value = base_flow_config["rx_port_config"].ip
     ipv4.dst.value = base_flow_config["tx_port_config"].ip

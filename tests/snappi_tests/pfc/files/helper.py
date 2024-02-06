@@ -313,6 +313,7 @@ def run_pfc_response_time_test(api,
                                bg_prio_list,
                                prio_dscp_map,
                                test_traffic_pause,
+                               intf_type,
                                snappi_extra_params=None):
     """
     Run a PFC test
@@ -421,7 +422,8 @@ def run_pfc_response_time_test(api,
     if snappi_extra_params.gen_background_traffic:
         # Generate background flow config
         generate_pre_pause_flows(testbed_config=testbed_config,
-                                 snappi_extra_params=snappi_extra_params)
+                                 snappi_extra_params=snappi_extra_params,
+                                 intf_type=intf_type,)
 
     flows = testbed_config.flows
 
