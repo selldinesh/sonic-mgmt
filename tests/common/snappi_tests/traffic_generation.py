@@ -373,7 +373,7 @@ def run_response_time_test(duthost,
     id = test_platform.Sessions.find()[-1].Id
     session = SessionAssistant(IpAddress=ip, UserName=username, SessionId=id, Password=password)
     ixnetwork = session.Ixnetwork
-    ixnetwork.Traffic.EnableMinFrameSize = False
+    ixnetwork.Traffic.EnableMinFrameSize = True
 
     ixnetwork.Globals.Statistics.Advanced.Timestamp.TimestampPrecision = 9
     port1 = ixnetwork.Vport.find(Name=base_flow_config["tx_port_name"])[0]
