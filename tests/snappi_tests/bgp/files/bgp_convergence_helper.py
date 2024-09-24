@@ -963,18 +963,3 @@ def get_RIB_IN_capacity(cvg_api,
         logger.info("\n%s" % tabulate(
             [['RIB-IN Capacity Test', max_routes]], headers=columns, tablefmt="psql"))
 
-
-def cleanup_config(duthost):
-    """
-    Cleaning up dut config at the end of the test
-
-    Args:
-        duthost (pytest fixture): duthost fixture
-    """
-    duthost.command("sudo cp {} {}".format(
-        "/etc/sonic/config_db_backup.json", "/etc/sonic/config_db.json"))
-    duthost.shell("sudo config reload -y \n")
-    logger.info("Wait until all critical services are fully started")
-    pytest_assert(wait_until(360, 10, 1, duthost.critical_services_fully_started),
-                  "Not all critical services are fully started")
-    logger.info('Convergence Test Completed')
