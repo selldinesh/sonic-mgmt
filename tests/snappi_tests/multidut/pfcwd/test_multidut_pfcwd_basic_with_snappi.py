@@ -4,9 +4,12 @@ import logging
 import re
 from collections import defaultdict
 from tests.common.helpers.assertions import pytest_require, pytest_assert                               # noqa: F401
-from tests.common.fixtures.conn_graph_facts import conn_graph_facts, fanout_graph_facts_multidut     # noqa: F401
+from tests.common.fixtures.conn_graph_facts import conn_graph_facts, fanout_graph_facts_multidut, \
+    fanout_graph_facts   # noqa: F401
 from tests.common.snappi_tests.snappi_fixtures import snappi_api_serv_ip, snappi_api_serv_port, \
-    snappi_api, snappi_dut_base_config, get_snappi_ports, get_snappi_ports_for_rdma, cleanup_config      # noqa: F401
+    snappi_api, snappi_dut_base_config, get_snappi_ports, is_snappi_multidut, \
+    get_snappi_ports_single_dut, get_snappi_ports_multi_dut, \
+    get_snappi_ports_for_rdma, cleanup_config      # noqa: F401
 from tests.common.snappi_tests.qos_fixtures import prio_dscp_map, lossless_prio_list      # noqa F401
 from tests.snappi_tests.variables import MULTIDUT_PORT_INFO, MULTIDUT_TESTBED
 from tests.common.reboot import reboot                              # noqa: F401
@@ -71,7 +74,7 @@ def test_pfcwd_basic_single_lossless_prio(snappi_api,                   # noqa: 
     skip_pfcwd_test(duthost=snappi_ports[0]['duthost'], trigger_pfcwd=trigger_pfcwd)
     skip_pfcwd_test(duthost=snappi_ports[1]['duthost'], trigger_pfcwd=trigger_pfcwd)
 
-    lossless_prio = random.sample(lossless_prio_list, 1)
+    lossless_prio = random.sample(lossless_prio_list, 1)[0]
     lossless_prio = int(lossless_prio)
 
     snappi_extra_params = SnappiTestParams()
@@ -218,7 +221,7 @@ def test_pfcwd_basic_single_lossless_prio_reboot(snappi_api,                # no
                                                                                 snappi_ports,
                                                                                 snappi_api)
 
-    lossless_prio = random.sample(lossless_prio_list, 1)
+    lossless_prio = random.sample(lossless_prio_list, 1)[0]
     lossless_prio = int(lossless_prio)
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
@@ -380,7 +383,7 @@ def test_pfcwd_basic_single_lossless_prio_service_restart(snappi_api,           
         testbed_config, port_config_list, snappi_ports = snappi_dut_base_config(duthosts,
                                                                                 snappi_ports,
                                                                                 snappi_api)
-    lossless_prio = random.sample(lossless_prio_list, 1)
+    lossless_prio = random.sample(lossless_prio_list, 1)[0]
     lossless_prio = int(lossless_prio)
 
     if (snappi_ports[0]['duthost'].is_multi_asic):
