@@ -2,9 +2,12 @@ import pytest
 import random
 import logging
 from tests.common.helpers.assertions import pytest_assert    # noqa F401
-from tests.common.fixtures.conn_graph_facts import conn_graph_facts, fanout_graph_facts_multidut         # noqa: F401
+from tests.common.fixtures.conn_graph_facts import conn_graph_facts, fanout_graph_facts_multidut, \
+    fanout_graph_facts   # noqa: F401
 from tests.common.snappi_tests.snappi_fixtures import snappi_api_serv_ip, snappi_api_serv_port, \
-    snappi_api, snappi_dut_base_config, get_snappi_ports, get_snappi_ports_for_rdma, cleanup_config      # noqa: F401
+    snappi_api, snappi_dut_base_config, get_snappi_ports, is_snappi_multidut, \
+    get_snappi_ports_single_dut, get_snappi_ports_multi_dut, \
+    get_snappi_ports_for_rdma, cleanup_config      # noqa: F401
 from tests.common.snappi_tests.qos_fixtures import prio_dscp_map, all_prio_list,\
     lossless_prio_list, lossy_prio_list     # noqa F401
 from tests.snappi_tests.variables import MULTIDUT_PORT_INFO, MULTIDUT_TESTBED
@@ -71,7 +74,7 @@ def test_multidut_pfcwd_all_to_all(snappi_api,                  # noqa: F811
                                                                                 snappi_ports,
                                                                                 snappi_api)
 
-    lossless_prio = random.sample(lossless_prio_list, 1)
+    lossless_prio = random.sample(lossless_prio_list, 1)[0]
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
 
