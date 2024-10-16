@@ -91,20 +91,21 @@ def test_pfc_pause_single_lossless_prio(snappi_api,                     # noqa: 
 
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
-
-    run_pfc_test(api=snappi_api,
-                 testbed_config=testbed_config,
-                 port_config_list=port_config_list,
-                 conn_data=conn_graph_facts,
-                 fanout_data=fanout_graph_facts_multidut,
-                 global_pause=False,
-                 pause_prio_list=pause_prio_list,
-                 test_prio_list=test_prio_list,
-                 bg_prio_list=bg_prio_list,
-                 prio_dscp_map=prio_dscp_map,
-                 test_traffic_pause=True,
-                 snappi_extra_params=snappi_extra_params)
-    cleanup_config(duthosts, snappi_ports)
+    try:
+        run_pfc_test(api=snappi_api,
+                    testbed_config=testbed_config,
+                    port_config_list=port_config_list,
+                    conn_data=conn_graph_facts,
+                    fanout_data=fanout_graph_facts_multidut,
+                    global_pause=False,
+                    pause_prio_list=pause_prio_list,
+                    test_prio_list=test_prio_list,
+                    bg_prio_list=bg_prio_list,
+                    prio_dscp_map=prio_dscp_map,
+                    test_traffic_pause=True,
+                    snappi_extra_params=snappi_extra_params)
+    finally:
+        cleanup_config(duthosts, snappi_ports)
 
 
 @pytest.mark.parametrize("multidut_port_info", MULTIDUT_PORT_INFO[MULTIDUT_TESTBED])
@@ -167,20 +168,21 @@ def test_pfc_pause_multi_lossless_prio(snappi_api,                  # noqa: F811
 
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
-
-    run_pfc_test(api=snappi_api,
-                 testbed_config=testbed_config,
-                 port_config_list=port_config_list,
-                 conn_data=conn_graph_facts,
-                 fanout_data=fanout_graph_facts_multidut,
-                 global_pause=False,
-                 pause_prio_list=pause_prio_list,
-                 test_prio_list=test_prio_list,
-                 bg_prio_list=bg_prio_list,
-                 prio_dscp_map=prio_dscp_map,
-                 test_traffic_pause=True,
-                 snappi_extra_params=snappi_extra_params)
-    cleanup_config(duthosts, snappi_ports)
+    try:
+        run_pfc_test(api=snappi_api,
+                    testbed_config=testbed_config,
+                    port_config_list=port_config_list,
+                    conn_data=conn_graph_facts,
+                    fanout_data=fanout_graph_facts_multidut,
+                    global_pause=False,
+                    pause_prio_list=pause_prio_list,
+                    test_prio_list=test_prio_list,
+                    bg_prio_list=bg_prio_list,
+                    prio_dscp_map=prio_dscp_map,
+                    test_traffic_pause=True,
+                    snappi_extra_params=snappi_extra_params)
+    finally:
+        cleanup_config(duthosts, snappi_ports)
 
 
 @pytest.mark.disable_loganalyzer
@@ -255,27 +257,27 @@ def test_pfc_pause_single_lossless_prio_reboot(snappi_api,                  # no
 
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
+    try:
+        for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
+            logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
+            reboot(duthost, localhost, reboot_type=reboot_type)
+            logger.info("Wait until the system is stable")
+            wait_until(180, 20, 0, duthost.critical_services_fully_started)
 
-    for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
-        logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
-        reboot(duthost, localhost, reboot_type=reboot_type)
-        logger.info("Wait until the system is stable")
-        wait_until(180, 20, 0, duthost.critical_services_fully_started)
-
-    run_pfc_test(api=snappi_api,
-                 testbed_config=testbed_config,
-                 port_config_list=port_config_list,
-                 conn_data=conn_graph_facts,
-                 fanout_data=fanout_graph_facts_multidut,
-                 global_pause=False,
-                 pause_prio_list=pause_prio_list,
-                 test_prio_list=test_prio_list,
-                 bg_prio_list=bg_prio_list,
-                 prio_dscp_map=prio_dscp_map,
-                 test_traffic_pause=True,
-                 snappi_extra_params=snappi_extra_params)
-
-    cleanup_config(duthosts, snappi_ports)
+        run_pfc_test(api=snappi_api,
+                    testbed_config=testbed_config,
+                    port_config_list=port_config_list,
+                    conn_data=conn_graph_facts,
+                    fanout_data=fanout_graph_facts_multidut,
+                    global_pause=False,
+                    pause_prio_list=pause_prio_list,
+                    test_prio_list=test_prio_list,
+                    bg_prio_list=bg_prio_list,
+                    prio_dscp_map=prio_dscp_map,
+                    test_traffic_pause=True,
+                    snappi_extra_params=snappi_extra_params)
+    finally:
+        cleanup_config(duthosts, snappi_ports)
 
 
 @pytest.mark.disable_loganalyzer
@@ -344,24 +346,24 @@ def test_pfc_pause_multi_lossless_prio_reboot(snappi_api,                  # noq
 
     snappi_extra_params = SnappiTestParams()
     snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
+    try:
+        for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
+            logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
+            reboot(duthost, localhost, reboot_type=reboot_type)
+            logger.info("Wait until the system is stable")
+            wait_until(180, 20, 0, duthost.critical_services_fully_started)
 
-    for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
-        logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
-        reboot(duthost, localhost, reboot_type=reboot_type)
-        logger.info("Wait until the system is stable")
-        wait_until(180, 20, 0, duthost.critical_services_fully_started)
-
-    run_pfc_test(api=snappi_api,
-                 testbed_config=testbed_config,
-                 port_config_list=port_config_list,
-                 conn_data=conn_graph_facts,
-                 fanout_data=fanout_graph_facts_multidut,
-                 global_pause=False,
-                 pause_prio_list=pause_prio_list,
-                 test_prio_list=test_prio_list,
-                 bg_prio_list=bg_prio_list,
-                 prio_dscp_map=prio_dscp_map,
-                 test_traffic_pause=True,
-                 snappi_extra_params=snappi_extra_params)
-
-    cleanup_config(duthosts, snappi_ports)
+        run_pfc_test(api=snappi_api,
+                    testbed_config=testbed_config,
+                    port_config_list=port_config_list,
+                    conn_data=conn_graph_facts,
+                    fanout_data=fanout_graph_facts_multidut,
+                    global_pause=False,
+                    pause_prio_list=pause_prio_list,
+                    test_prio_list=test_prio_list,
+                    bg_prio_list=bg_prio_list,
+                    prio_dscp_map=prio_dscp_map,
+                    test_traffic_pause=True,
+                    snappi_extra_params=snappi_extra_params)
+    finally:
+        cleanup_config(duthosts, snappi_ports)
