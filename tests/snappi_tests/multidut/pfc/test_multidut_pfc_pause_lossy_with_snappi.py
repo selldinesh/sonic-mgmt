@@ -12,6 +12,7 @@ from tests.snappi_tests.variables import MULTIDUT_PORT_INFO, MULTIDUT_TESTBED
 from tests.snappi_tests.multidut.pfc.files.multidut_helper import run_pfc_test
 from tests.common.reboot import reboot
 from tests.common.utilities import wait_until
+from tests.common.platform.processes_utils import wait_critical_processes
 import logging
 from tests.common.snappi_tests.snappi_test_params import SnappiTestParams
 from tests.snappi_tests.files.helper import skip_warm_reboot
@@ -248,9 +249,11 @@ def test_pfc_pause_single_lossy_prio_reboot(snappi_api,             # noqa: F811
     try:
         for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
             logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
-            reboot(duthost, localhost, reboot_type=reboot_type)
+            reboot(duthost, localhost, reboot_type=reboot_type, safe_reboot=True)
             logger.info("Wait until the system is stable")
-            wait_until(180, 20, 0, duthost.critical_services_fully_started)
+            wait_critical_processes(duthost)
+            pytest_assert(wait_until(300, 20, 0, duthost.critical_services_fully_started),
+                        "Not all critical services are fully started")
 
         snappi_extra_params = SnappiTestParams()
         snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
@@ -338,9 +341,11 @@ def test_pfc_pause_multi_lossy_prio_reboot(snappi_api,          # noqa: F811
     try:
         for duthost in [snappi_ports[0]['duthost'], snappi_ports[1]['duthost']]:
             logger.info("Issuing a {} reboot on the dut {}".format(reboot_type, duthost.hostname))
-            reboot(duthost, localhost, reboot_type=reboot_type)
+            reboot(duthost, localhost, reboot_type=reboot_type, safe_reboot=True)
             logger.info("Wait until the system is stable")
-            wait_until(180, 20, 0, duthost.critical_services_fully_started)
+            wait_critical_processes(duthost)
+            pytest_assert(wait_until(300, 20, 0, duthost.critical_services_fully_started),
+                        "Not all critical services are fully started")
 
         snappi_extra_params = SnappiTestParams()
         snappi_extra_params.multi_dut_params.multi_dut_ports = snappi_ports
