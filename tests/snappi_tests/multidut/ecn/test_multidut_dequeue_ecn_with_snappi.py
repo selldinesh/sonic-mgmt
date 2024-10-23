@@ -76,7 +76,7 @@ def test_dequeue_ecn(request,
                                                                                 snappi_ports,
                                                                                 snappi_api)
 
-    lossless_prio = random.sample(lossless_prio_list, 1)
+    lossless_prio = random.sample(lossless_prio_list, 1)[0]
     skip_ecn_tests(snappi_ports[0]['duthost'])
     skip_ecn_tests(snappi_ports[1]['duthost'])
     lossless_prio = int(lossless_prio)

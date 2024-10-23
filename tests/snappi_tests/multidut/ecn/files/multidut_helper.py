@@ -84,8 +84,8 @@ def run_ecn_test(api,
 
     # Enable ECN marking
     logger.info("Enabling ECN markings")
-    pytest_assert(enable_ecn(host_ans=egress_duthost, prio=lossless_prio), 'Unable to enable ecn')
-    pytest_assert(enable_ecn(host_ans=ingress_duthost, prio=lossless_prio), 'Unable to enable ecn')
+    pytest_assert(enable_ecn(host_ans=egress_duthost, prio=lossless_prio, asic_value=rx_port['asic_value']), 'Unable to enable ecn')
+    pytest_assert(enable_ecn(host_ans=ingress_duthost, prio=lossless_prio, asic_value=tx_port['asic_value']), 'Unable to enable ecn')
 
     config_result = config_ingress_lossless_buffer_alpha(host_ans=egress_duthost,
                                                          alpha_log2=3)
