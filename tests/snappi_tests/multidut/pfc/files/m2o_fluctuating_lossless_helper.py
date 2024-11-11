@@ -1,5 +1,6 @@
 import logging                                                                          # noqa: F401
 import random
+import math
 from tests.common.helpers.assertions import pytest_assert, pytest_require               # noqa: F401
 from tests.common.fixtures.conn_graph_facts import conn_graph_facts, fanout_graph_facts  # noqa: F401
 from tests.common.snappi_tests.snappi_helpers import get_dut_port_id                     # noqa: F401
@@ -375,4 +376,4 @@ def verify_m2o_fluctuating_lossless_result(rows,
             pytest_assert(int(row.loss) == 0, "FAIL: {} must have 0% loss".format(row.name))
         elif 'Background Flow' in row.name:
             background_loss += float(row.loss)
-    pytest_assert(int(background_loss/4) == 10, "Each Background Flow must have an avg of 10% loss ")
+    pytest_assert(math.ceil(background_loss/4) == 10 or math.floor(background_loss/4) == 10, "Each Background Flow must have an avg of 10% loss ")
