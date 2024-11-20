@@ -353,6 +353,8 @@ def run_response_time_test(duthost,
     Returns:
         per-flow statistics (list)
     """
+    duthost.command('sudo pfcwd stop \n')
+    time.sleep(10)
     base_flow_config = snappi_extra_params.base_flow_config
 
     # Enabling capture
@@ -361,7 +363,6 @@ def run_response_time_test(duthost,
     capture.name = "Capture 1"
     capture.port_names = [base_flow_config["tx_port_name"], base_flow_config["rx_port_name"]]
     capture.format = capture.PCAP
-
     api.set_config(config)
 
     username = api._username
@@ -373,39 +374,45 @@ def run_response_time_test(duthost,
     id = test_platform.Sessions.find()[-1].Id
     session = SessionAssistant(IpAddress=ip, UserName=username, SessionId=id, Password=password)
     ixnetwork = session.Ixnetwork
-    ixnetwork.Traffic.EnableMinFrameSize = True
+    ixnetwork.Traffic.EnableMinFrameSize = False
+    ixnetwork.Traffic.EnableStaggeredStartDelay = False #
 
     ixnetwork.Globals.Statistics.Advanced.Timestamp.TimestampPrecision = 9
     port1 = ixnetwork.Vport.find(Name=base_flow_config["tx_port_name"])[0]
     port2 = ixnetwork.Vport.find(Name=base_flow_config["rx_port_name"])[0]
-    port2.Type = 'novusHundredGigLan'
-    port2.TxMode = 'sequential'
+    # port2.Type = 'novusHundredGigLan'
+    port2.TxMode = 'interleaved'
     port2.Capture.SoftwareEnabled = False
     port2.Capture.DataReceiveTimestamp = 'hwTimestamp'
     port2.Capture.HardwareEnabled = False
     port1.Capture.SoftwareEnabled = False
+    port1.Capture.HardwareEnabled = True
     port1.Capture.DataReceiveTimestamp = 'hwTimestamp'
     port1.Capture.Filter.CaptureFilterEnable = True
-    port1.Capture.Filter.CaptureFilterSA = 'addr1'
-    port1.Capture.FilterPallette.SA1 = base_flow_config["rx_port_config"].mac.replace(':', ' ')
+
+    port1.Capture.Filter.CaptureFilterPattern = 'pattern1'
+    if port1.Name == 'Port 1':
+        port1.Capture.FilterPallette.Pattern1 = '15010102'
+    else:
+        port1.Capture.FilterPallette.Pattern1 = '16010102'
+    port1.Capture.FilterPallette.PatternMask1 = 'FFFFFF00'
+    port1.Capture.Filter.CaptureFilterExpressionString='P2'
+
     logger.info("Wait for Arp to Resolve ...")
-    wait_for_arp(api, max_attempts=30, poll_interval_sec=2)
-    test_flow_name = [flow for flow in all_flow_names if "Test Flow" in flow]
-    non_test_flows = [flow for flow in all_flow_names if "Test Flow" not in flow]
     wait_for_arp(api, max_attempts=30, poll_interval_sec=2)
 
     pre_pause_ti = ixnetwork.Traffic.TrafficItem.find(Name='Pre-Pause')[0]
-    pre_pause_ti.TransmitMode = 'sequential'
+    pre_pause_ti.TransmitMode = 'interleaved'
 
     # adding endpointset
-    pre_pause_ti.ConfigElement.find()[0].TransmissionControl.Type = 'custom'
-    pre_pause_ti.ConfigElement.find()[0].TransmissionControl.BurstPacketCount = packet_count
+    pre_pause_ti.ConfigElement.find()[0].TransmissionControl.Type = 'fixedFrameCount'
+    pre_pause_ti.ConfigElement.find()[0].TransmissionControl.FrameCount = 100
     pre_pause_ti.EndpointSet.add(Name="Pause Storm", Sources=port2.Protocols.find(),
                                  Destinations=port1.Protocols.find())
+    #pause traffic
     ce = pre_pause_ti.ConfigElement.find()[1]
-    ce.TransmissionControl.Type = 'custom'
-    ce.TransmissionControl.RepeatBurst = 4294967295
-    ce.FrameRate.Type = 'framesPerSecond'
+    ce.TransmissionControl.Type = 'continuous'
+    
     ce.FrameRate.Rate = pause_rate
     pfc_template = ixnetwork.Traffic.ProtocolTemplate.find(StackTypeId='^pfcPause$')
     ethernet_template = ce.Stack.find(StackTypeId='^ethernet$')
@@ -415,35 +422,53 @@ def run_response_time_test(duthost,
     PFC_stack.find(StackTypeId='^pfcPause$').Field.find()[5].SingleValue = '0'
     PFC_stack.find(StackTypeId='^pfcPause$').Field.find()[8].SingleValue = 'ffff'
 
-    # Start test flow first
-    logger.info("Starting transmit on test flow ...")
-    ts = api.transmit_state()
-    ts.flow_names = test_flow_name
-    ts.state = ts.START
-    api.set_transmit_state(ts)
+    pre_pause_ti.Generate()
+    ixnetwork.Traffic.Apply()
+    logger.info("Starting transmit on pause and pre-pause ...")
+    pre_pause_ti.StartStatelessTrafficBlocking()
+    time.sleep(10)
+    pre_pause_ti.StopStatelessTrafficBlocking()
+    TI_Statistics = StatViewAssistant(ixnetwork, 'Traffic Item Statistics')
+    last_time_stamp = float(TI_Statistics.Rows[1]["Last TimeStamp"].split(':')[-1]) * 1000
+    ce.TransmissionControl.StartDelayUnits = 'milliseconds'
+    ce.TransmissionControl.StartDelay = int(last_time_stamp)
 
+    logger.info("Starting transmit on test flow ...")
+    test_flow_ti = ixnetwork.Traffic.TrafficItem.find(Name='Test Flow Prio 3')[0]
+    test_flow_ti.Generate()
+    pre_pause_ti.Generate()
+    ixnetwork.Traffic.Apply()
+    test_flow_ti.StartStatelessTrafficBlocking()
+    time.sleep(10)
     # start capture on tx port of test flow
     logger.info("Starting packet capture ...")
-    cs = api.capture_state()
-    cs.state = cs.START
-    api.set_capture_state(cs)
+    ixnetwork.StartCapture()
 
     # starting pause and pre-pause
-    time.sleep(5)
+    time.sleep(10)
     logger.info("Starting transmit on pause and pre-pause ...")
-    ts = api.transmit_state()
-    ts.flow_names = non_test_flows
-    ts.state = ts.START
-    api.set_transmit_state(ts)
-    time.sleep(2)
+    pre_pause_ti.StartStatelessTrafficBlocking()
     TI_Statistics = StatViewAssistant(ixnetwork, 'Traffic Item Statistics')
+    t=0
+    while True:
+        TI_Statistics = StatViewAssistant(ixnetwork, 'Traffic Item Statistics')
+        if int(float(TI_Statistics.Rows[0]["Tx Frame Rate"])) == 0:
+            logger.info('Test Flow stopped sending packets')
+            break
+        logger.info('Polling for Test Flow to stop transmitting ...........{} m sec'.format(t * 1000))
+        pytest_assert(t<20, 'Test Flow is still transmitting for 10 seconds after starting pre-pause')
+        time.sleep(0.05)
+        t=t+0.05
+    # TI_Statistics = StatViewAssistant(ixnetwork, 'Traffic Item Statistics')
     lastStreamPacketTimestamp = TI_Statistics.Rows[0]["Last TimeStamp"]
 
+    print(' Stopping Traffic')
+    ixnetwork.Traffic.StopStatelessTrafficBlocking()
     # Stopping and getting packets
+    time.sleep(10)
     logger.info("Stopping packet capture ...")
-    cs = api.capture_state()
-    cs.state = cs.STOP
-    api.set_capture_state(cs)
+    ixnetwork.StopCapture()
+    time.sleep(20)
 
     pathp = ixnetwork.Globals.PersistencePath
     res = ixnetwork.SaveCaptureFiles(Arg1=pathp)[0]
@@ -471,6 +496,7 @@ def run_response_time_test(duthost,
     lastPrePausePacketTxTimeStamp = host1_df['sent'].loc[host1_df.index[packet_count - 1]]
     pauseFrameTimestamp = lastPrePausePacketTxTimeStamp + packetTimeOnWire
     pauseFrameTxTimestamp = pauseFrameTimestamp + packetDurationOnWire
+
     responseTime = float(lastStreamPacketTimestamp.split(':')[-1]) * 1000000000 - pauseFrameTxTimestamp
     logger.info('----------------------------------------------')
     logger.info("Last Pre Pause Timestamp   : {} ns|".format(float(lastPrePausePacketTxTimeStamp)))
