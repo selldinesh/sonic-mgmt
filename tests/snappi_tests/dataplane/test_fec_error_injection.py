@@ -10,9 +10,6 @@ ErrorTypes = [  'maxConsecutiveUncorrectableWithoutLossOfLink',
                 'minConsecutiveUncorrectableWithLossOfLink',
                 'laneMarkers'
             ]
-# ErrorTypes = [
-#                 'minConsecutiveUncorrectableWithLossOfLink'
-#             ]
 
 @pytest.mark.parametrize('error_type', ErrorTypes)
 def test_fec_error_injection(snappi_api,                   # noqa F811
@@ -77,15 +74,15 @@ def test_fec_error_injection(snappi_api,                   # noqa F811
     wait(15, "For error insertion to start")
     # TODO For maxConsecutiveUncorrectableWithoutLossOfLink check link state on DUT
     flow_metrics = fetch_snappi_flow_metrics(api, ['IPv4 Traffic'])[0]
-    pytest_assert(flow_metrics.frames_tx > 0 and int(flow_metrics.frames_rx_rate) == 0,
+    pytest_assert(flow_metrics.frames_tx > 0 and int(flow_metrics.loss) > 0,
                 "FAIL: Rx Port did not stop receiving packets after starting FEC Error Insertion")
     logger.info(' .. PASSED : Rx Port stopped receiving packets after starting FEC Error Insertion')
     logger.info('Stopping FEC Error Insertion')
     port1.StopFecErrorInsertion()
     wait(15, "For error insertion to stop")
-
+    ixnet.ClearStats()
     flow_metrics = fetch_snappi_flow_metrics(api, ['IPv4 Traffic'])[0]
-    pytest_assert(int(flow_metrics.frames_rx_rate) > 0,
+    pytest_assert(int(flow_metrics.frames_rx_rate) > 0 and int(flow_metrics.loss) == 0,
                 "FAIL: Rx Port did not resume receiving packets after stopping FEC Error Insertion")
     logger.info(' .. PASSED : Rx Port resumed receiving packets after stopping FEC Error Insertion')
     logger.info('Stopping Traffic ...')
@@ -93,4 +90,3 @@ def test_fec_error_injection(snappi_api,                   # noqa F811
     ts.traffic.flow_transmit.state = ts.traffic.flow_transmit.STOP
     api.set_control_state(ts)
     wait(10, "For traffic to stop")
-
