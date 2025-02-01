@@ -1,0 +1,55 @@
+from tests.snappi_tests.bgp.files.ebgp_helper import run_ebgp_session_capacity_test
+from tests.common.fixtures.conn_graph_facts import (                        # noqa F401
+    conn_graph_facts, fanout_graph_facts)
+import pytest
+from tests.common.snappi_tests.snappi_fixtures import (
+    snappi_api_serv_ip, 
+    snappi_api_serv_port,
+    snappi_api,
+    tgen_ports,
+    get_snappi_ports,
+    get_snappi_ports_single_dut,
+    get_snappi_ports_multi_dut,
+    is_snappi_multidut,
+    )
+from tests.snappi_tests.dataplane.imports import *        # noqa: F401
+from tests.snappi_tests.variables import get_host_addresses, create_ip_list    
+from tests.common.snappi_tests.snappi_test_params import SnappiTestParams
+
+pytestmark = [pytest.mark.topology('tgen')]
+
+@pytest.mark.parametrize('session_count_start_value', [1400])
+@pytest.mark.parametrize('session_increment', [100])
+def test_bgp_convergence_for_local_link_failover(snappi_api,                   # noqa F811
+                                                 duthost,
+                                                 conn_graph_facts,          # noqa F811
+                                                 get_snappi_ports,  
+                                                 fanout_graph_facts,        # noqa F811
+                                                 session_increment,
+                                                 session_count_start_value,):
+
+    max_ebgp_session_count = 5000
+    tx_subnet_prefix = 24
+    rx_subnet_prefix = 8
+    number_of_routes_per_session = 1
+    # Tx Side
+    tx_ipv4_subnet = '39.0.0.0'
+    # # Rx Side
+    rx_ipv4_subnet = '40.0.0.0'
+    snappi_extra_params = SnappiTestParams()
+    snappi_extra_params.port_count = 2
+    snappi_extra_params.tx_subnet_prefix = tx_subnet_prefix
+    snappi_extra_params.rx_subnet_prefix = rx_subnet_prefix
+    snappi_extra_params.tx_ipv4_subnet = tx_ipv4_subnet
+    snappi_extra_params.rx_ipv4_subnet = rx_ipv4_subnet
+    snappi_extra_params.ebgp_session_count = session_count_start_value
+    snappi_extra_params.number_of_routes = number_of_routes_per_session
+    # snappi_extra_params.route_type = route_type
+    snappi_extra_params.session_increment = session_increment
+    snappi_extra_params.max_ebgp_session_count = max_ebgp_session_count
+    
+    snappi_ports = get_snappi_ports
+    run_ebgp_session_capacity_test(snappi_api,
+                                   snappi_ports,
+                                   duthost,
+                                   snappi_extra_params)
