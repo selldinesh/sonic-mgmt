@@ -38,6 +38,7 @@ def run_ebgp_session_capacity_test(snappi_api,
     """
     Run eBGP Session Capacity Tests
     """
+    config_db = json.loads(duthost.shell("sonic-cfggen -d --print-data")['stdout'])
     global flag
     if snappi_extra_params is None:
         snappi_extra_params = SnappiTestParams()
@@ -51,7 +52,7 @@ def run_ebgp_session_capacity_test(snappi_api,
         snappi_extra_params.route_ranges = create_ip_list('200.1.1.1', session_count, mask=32)
         snappi_extra_params.tx_host_ips = get_host_addresses(snappi_extra_params.tx_ipv4_subnet + '/' + str(snappi_extra_params.tx_subnet_prefix), 2) # one for ixia , one for dut
         snappi_extra_params.rx_host_ips = get_host_addresses(snappi_extra_params.rx_ipv4_subnet + '/' + str(snappi_extra_params.rx_subnet_prefix), session_count + 1)
-        snappi_config = setup_dut_snappi_config(duthost, snappi_api, snappi_ports, session_count, snappi_extra_params)
+        snappi_config = setup_dut_snappi_config(duthost, config_db, snappi_api, snappi_ports, session_count, snappi_extra_params)
         result = verify_results(snappi_api, snappi_config, session_count)
         result_list.append(result)
         flag = flag + result
@@ -66,7 +67,7 @@ def run_ebgp_session_capacity_test(snappi_api,
     max_session = session_count
     logger.info('Reducing eBGP session count as previous iteration encountered loss or protocols didn\'t come up')
     while max_session_capacity >min_session or max_session_capacity < max_session:
-        snappi_config = setup_dut_snappi_config(duthost, snappi_api, snappi_ports, max_session_capacity, snappi_extra_params)
+        snappi_config = setup_dut_snappi_config(duthost, config_db, snappi_api, snappi_ports, max_session_capacity, snappi_extra_params)
         result = verify_results(snappi_api, snappi_config, max_session_capacity)
         result_list.append(result)
         if result == 0:
@@ -88,6 +89,7 @@ def run_ebgp_session_capacity_test(snappi_api,
             break
 
 def setup_dut_snappi_config(duthost,
+                            config_db,
                             snappi_api,
                             snappi_ports,
                             session_count,
@@ -97,7 +99,7 @@ def setup_dut_snappi_config(duthost,
     """
 
     logger.info('\n')
-    config_db = json.loads(duthost.shell("sonic-cfggen -d --print-data")['stdout'])
+    #config_db = json.loads(duthost.shell("sonic-cfggen -d --print-data")['stdout'])
     interfaces = dict()
     loopback_interfaces = dict()
     loopback_interfaces.update({"Loopback0": {}})
@@ -272,16 +274,18 @@ def get_ti_stats(ixnet):
     return tmp
 
 def wait_for_bgp_session_up(ixnet, timeout = 60):
+    time.sleep(timeout)
     protocol_summary = StatViewAssistant(ixnet, 'Protocols Summary')
     for row in  protocol_summary.Rows:
         if 'BGP' in row['Protocol Type']:
-            time.sleep(timeout)
-            logger.info('eBGP Sessions Total {}'.format(row['Sessions Total']))
-            logger.info('eBGP Sessions Up    {}'.format(row['Sessions Up']))
-            if int(row['Sessions Total']) == int(row['Sessions Up']):
+            logger.info('eBGP Sessions Total : {}'.format(row['Sessions Total']))
+            logger.info('eBGP Sessions Up    : {}'.format(row['Sessions Up']))
+            if int(row['Sessions Total']) != int(row['Sessions Up']):
                 logger.info('|-------FAIL : All eBGP sessions are not Up in {}s-----|'.format(timeout))
                 return False
     return True
+
+
 
 
 def verify_results(api, snappi_config, session_count):
@@ -316,5 +320,6 @@ def verify_results(api, snappi_config, session_count):
     ts.traffic.flow_transmit.state = ts.traffic.flow_transmit.STOP
     api.set_control_state(ts)
     ixnet.StopAllProtocols()
+    wait(30, "For traffic and protocol to stop")
     max_session_capacity = session_count
     return 0
