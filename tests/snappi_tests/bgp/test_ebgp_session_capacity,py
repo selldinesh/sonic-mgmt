@@ -18,8 +18,8 @@ from tests.common.snappi_tests.snappi_test_params import SnappiTestParams
 
 pytestmark = [pytest.mark.topology('tgen')]
 
-@pytest.mark.parametrize('session_count_start_value', [1400])
-@pytest.mark.parametrize('session_increment', [100])
+@pytest.mark.parametrize('session_count_start_value', [2000])
+@pytest.mark.parametrize('session_increment', [2000])
 def test_bgp_convergence_for_local_link_failover(snappi_api,                   # noqa F811
                                                  duthost,
                                                  conn_graph_facts,          # noqa F811
@@ -28,7 +28,7 @@ def test_bgp_convergence_for_local_link_failover(snappi_api,                   #
                                                  session_increment,
                                                  session_count_start_value,):
 
-    max_ebgp_session_count = 5000
+    max_ebgp_session_count = 10000
     tx_subnet_prefix = 24
     rx_subnet_prefix = 8
     number_of_routes_per_session = 1

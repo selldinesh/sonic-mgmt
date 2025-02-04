@@ -273,15 +273,18 @@ def get_ti_stats(ixnet):
     tmp = tdf[selected_columns]
     return tmp
 
-def wait_for_bgp_session_up(ixnet, timeout = 60):
+def wait_for_bgp_session_up(ixnet, timeout = 60, restart_down = False):
     time.sleep(timeout)
     protocol_summary = StatViewAssistant(ixnet, 'Protocols Summary')
     for row in  protocol_summary.Rows:
         if 'BGP' in row['Protocol Type']:
             logger.info('eBGP Sessions Total : {}'.format(row['Sessions Total']))
             logger.info('eBGP Sessions Up    : {}'.format(row['Sessions Up']))
-            if int(row['Sessions Total']) != int(row['Sessions Up']):
-                logger.info('|-------FAIL : All eBGP sessions are not Up in {}s-----|'.format(timeout))
+            if int(row['Sessions Total']) != int(row['Sessions Up']) and restart_down == False:
+                logger.info(' All eBGP sessions are not Up in {}s'.format(timeout))
+                return False
+            elif int(row['Sessions Total']) != int(row['Sessions Up']) and restart_down == True:
+                logger.info('|-------FAIL : All eBGP sessions are not Up after Restart Down operation in {}s-----|'.format(timeout))
                 return False
     return True
 
@@ -295,13 +298,17 @@ def verify_results(api, snappi_config, session_count):
     logger.info('\n')
     api.set_config(snappi_config)
     ixnet = api._ixnetwork
-    logger.info("Wait for Arp to Resolve ...")
     logger.info('Starting Protocols ...')
     ixnet.StartAllProtocols()
     logger.info('Cheking eBGP session status ...')
     result = wait_for_bgp_session_up(ixnet, timeout = 180)
     if result is False:
-        return 1
+        bgp =  ixnet.Topology.find()[1].DeviceGroup.find()[0].Ethernet.find()[0].Ipv4.find()[0].BgpIpv4Peer.find()[0]
+        bgp.RestartDown()
+        logger.info('Performing Restart Down on BGP Stack and Checking status ...')
+        result = wait_for_bgp_session_up(ixnet, timeout = 180, restart_down = True)
+        if result is False:
+            return 1
     logger.info('All eBGP sessions are UP !!')
     logger.info('Starting Traffic ...')
     ts = api.control_state()
