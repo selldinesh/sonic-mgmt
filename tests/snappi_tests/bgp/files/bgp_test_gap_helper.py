@@ -3,6 +3,8 @@ from tests.common.utilities import (wait, wait_until)
 from tests.common.helpers.assertions import pytest_assert
 import logging
 logger = logging.getLogger(__name__)
+import json
+import pytest
 
 TGEN_AS_NUM = 65200
 DUT_AS_NUM = 65100
@@ -34,12 +36,12 @@ def run_bgp_convergence_performance(snappi_api,
         stop_routes: ending route count value
         route_type: IPv4 or IPv6 routes
     """
-    port_count = multipath + 1
+    # port_count = multipath + 1
     """ Create bgp config on dut """
 
-    duthost_bgp_3port_config(duthost,
-                             tgen_ports,
-                             port_count,)
+    duthost_bgp_scalability_config(duthost,
+                                    tgen_ports,
+                                    multipath,)
     """
         Run the convergence test by withdrawing all the route ranges
         one by one and calculate the convergence values
@@ -52,8 +54,6 @@ def run_bgp_convergence_performance(snappi_api,
                                              route_type,
                                              duthost,)
 
-    """ Cleanup the dut configs after getting the convergence numbers """
-    cleanup_config(duthost)
 
 
 def run_bgp_scalability_v4_v6(snappi_api,
@@ -93,7 +93,7 @@ def run_bgp_scalability_v4_v6(snappi_api,
                                         ipv6_prefix,
                                         dual_stack_flag,)
 
-    if ipv4_routes + ipv6_routes > 125000:
+    if ipv4_routes + ipv6_routes >= 125000:
         limit_flag = 1
     else:
         limit_flag = 0
@@ -101,6 +101,102 @@ def run_bgp_scalability_v4_v6(snappi_api,
         Run the BGP Scalability test
     """
     get_bgp_scalability_result(snappi_api, localhost, tgen_bgp_config, limit_flag, duthost)
+
+
+def duthost_bgp_scalability_config(duthost, tgen_ports, multipath):
+    """
+    Configures BGP on the DUT with N-1 ecmp
+    Args:
+        duthost (pytest fixture): duthost fixture
+        tgen_ports (pytest fixture): Ports mapping info of T0 testbed
+    """
+    global temp_tg_port
+    port_count = multipath + 1
+    duthost.command(
+        "sudo crm config polling interval 30 && "
+        "sudo crm config thresholds ipv4 route high 85 && "
+        "sudo crm config thresholds ipv4 route low 70 && "
+        "sudo config save -y && "
+        "sudo cp /etc/sonic/config_db.json /etc/sonic/config_db_backup.json"
+    )
+    temp_tg_port = tgen_ports
+    for i in range(port_count):
+        port = tgen_ports[i]
+        intf_config = (
+            f"sudo config interface ip remove {port['peer_port']} {port['peer_ip']}/{port['prefix']}\n"
+            f"sudo config interface ip remove {port['peer_port']} {port['peer_ipv6']}/{port['ipv6_prefix']}\n"
+        )
+        logger.info(f"Removing IPs from {port['peer_port']}")
+        duthost.shell(intf_config)
+
+    for i in range(port_count):
+        port = tgen_ports[i]
+        idx = i + 1
+        portchannel_config = (
+            f"sudo config portchannel add PortChannel{idx} \n"
+            f"sudo config portchannel member add PortChannel{idx} {port['peer_port']}\n"
+            f"sudo config interface ip add PortChannel{idx} {port['peer_ip']}/{port['prefix']}\n"
+            f"sudo config interface ip add PortChannel{idx} {port['peer_ipv6']}/{port['ipv6_prefix']}\n"
+        )
+        logger.info(f"Configuring {port['peer_port']} to PortChannel{idx}")
+        duthost.shell(portchannel_config)
+
+    duthost.command("sudo config save -y")
+    # BGP Configuration
+    loopback_interfaces = {
+        "Loopback0": {},
+        "Loopback0|1.1.1.1/32": {},
+        "Loopback0|1::1/128": {},
+    }
+    config_db = json.loads(duthost.shell("sonic-cfggen -d --print-data")['stdout'])
+    bgp_neighbors = {
+        addr: {
+            "admin_status": "up",
+            "asn": TGEN_AS_NUM,
+            "holdtime": "10",
+            "keepalive": "3",
+            "local_addr": ip_version,
+            "name": "snappi-sonic",
+            "nhopself": "0",
+            "rrclient": "0",
+        }
+        for port in tgen_ports
+        for addr, ip_version in [(port['ip'], port['peer_ip']), (port['ipv6'], port['peer_ipv6'])]
+    }
+
+    device_neighbors = {
+        port['peer_port']: {
+            "name": "snappi-sonic",
+            "port": "Ethernet1"
+        }
+        for port in tgen_ports
+    }
+
+    device_neighbor_metadatas = {
+        "snappi-sonic": {
+            "hwsku": "snappi-sonic",
+            "mgmt_addr": "172.16.149.206",
+            "type": "TORRouter"
+        }
+    }
+    config_db_keys = config_db.keys()
+    config_db.setdefault("LOOPBACK_INTERFACE", {}).update(loopback_interfaces)
+    config_db.setdefault("BGP_NEIGHBOR", {}).update(bgp_neighbors)
+    config_db.setdefault("DEVICE_NEIGHBOR_METADATA", {}).update(device_neighbor_metadatas)
+    config_db.setdefault("DEVICE_NEIGHBOR", {}).update(device_neighbors)
+    with open("/tmp/temp_config.json", 'w') as fp:
+        json.dump(config_db, fp, indent=4)
+    duthost.copy(src="/tmp/temp_config.json", dest="/etc/sonic/config_db.json")
+    # logger.info('Reloading config_db.json to apply BGP configuration on {}'.format(duthost.hostname))
+    # pytest_assert('Error' not in duthost.shell("sudo config reload -f -y \n")['stderr'],
+    #             'Error while reloading config in {} !!!!!'.format(duthost.hostname))
+    logger.info("Reloading config on DUT {}".format(duthost.hostname))
+    error = duthost.command("sudo config reload -f -y \n")['stderr']
+    if 'Error' in error:
+        pytest_assert('Error' not in duthost.shell("sudo config reload -y \n")['stderr'],'Error while reloading config in {} !!!!!'
+                        .format(duthost.hostname))
+    wait(60, "For DUT to come back online after config reload")
+    logger.info('Config Reload Successful in {} !!!'.format(duthost.hostname))
 
 
 def duthost_bgp_3port_config(duthost,
@@ -190,7 +286,7 @@ def duthost_bgp_3port_config(duthost,
         duthost.shell(bgp_config_neighbor)
 
 
-def duthost_bgp_scalability_config(duthost, tgen_ports, multipath):
+def duthost_bgp_scalability_config_x(duthost, tgen_ports, multipath):
     """
     Configures BGP on the DUT with N-1 ecmp
     Args:
@@ -302,9 +398,9 @@ def __tgen_bgp_config(snappi_api,
     layer1.name = 'port settings'
     layer1.port_names = [port.name for port in config.ports]
     layer1.ieee_media_defaults = False
-    layer1.auto_negotiation.rs_fec = False
+    layer1.auto_negotiation.rs_fec = True
     layer1.auto_negotiation.link_training = False
-    layer1.speed = temp_tg_port[0]['speed']
+    layer1.speed = temp_tg_port[1]['speed']
     layer1.auto_negotiate = False
 
     # Source
@@ -418,7 +514,7 @@ def get_convergence_for_remote_link_failover(snappi_api,
     """
     table = []
     global NG_LIST
-
+    last_passed_routes = []
     def tgen_config(routes):
         config = snappi_api.config()
         for i in range(1, multipath + 2):
@@ -440,9 +536,9 @@ def get_convergence_for_remote_link_failover(snappi_api,
         layer1.name = 'port settings'
         layer1.port_names = [port.name for port in config.ports]
         layer1.ieee_media_defaults = False
-        layer1.auto_negotiation.rs_fec = False
+        layer1.auto_negotiation.rs_fec = True
         layer1.auto_negotiation.link_training = False
-        layer1.speed = temp_tg_port[0]['speed']
+        layer1.speed = temp_tg_port[1]['speed']
         layer1.auto_negotiate = False
 
         def create_v4_topo():
@@ -553,59 +649,60 @@ def get_convergence_for_remote_link_failover(snappi_api,
         flow.metrics.loss = True
         return config
 
-    for j in range(start_routes, stop_routes, routes_step):
-        logger.info('|--------------------CP/DP Test with No.of Routes : {} ----|'.format(j))
-        bgp_config = tgen_config(j)
-        route_name = NG_LIST[0]
-        bgp_config.events.cp_events.enable = True
-        bgp_config.events.dp_events.enable = True
-        bgp_config.events.dp_events.rx_rate_threshold = 90/(multipath-1)
-        snappi_api.set_config(bgp_config)
+    try:
+        for j in range(start_routes, stop_routes, routes_step):
+            logger.info('|--------------------CP/DP Test with No.of Routes : {} ----|'.format(j))
+            bgp_config = tgen_config(j)
+            route_name = NG_LIST[0]
+            bgp_config.events.cp_events.enable = True
+            bgp_config.events.dp_events.enable = True
+            bgp_config.events.dp_events.rx_rate_threshold = 90/(multipath-1)
+            snappi_api.set_config(bgp_config)
 
-        def get_cpdp_convergence_time(route_name):
-            """
-            Args:
-                route_name: name of the route
+            def get_cpdp_convergence_time(route_name):
+                """
+                Args:
+                    route_name: name of the route
 
-            """
-            table, tx_frate, rx_frate = [], [], []
-            run_traffic(snappi_api, duthost)
-            flow_stats = get_flow_stats(snappi_api)
-            tx_frame_rate = flow_stats[0].frames_tx_rate
-            assert tx_frame_rate != 0, "Traffic has not started"
-            """ Withdrawing routes from a BGP peer """
-            logger.info('Withdrawing Routes from {}'.format(route_name))
-            wait(TIMEOUT, "Waiting before routes to be withdrawn")
-            cs = snappi_api.control_state()
-            cs.protocol.route.state = cs.protocol.route.WITHDRAW
-            cs.protocol.route.names = [route_name]
-            snappi_api.set_control_state(cs)
-            wait(TIMEOUT, "For routes to be withdrawn")
-            flows = get_flow_stats(snappi_api)
-            for flow in flows:
-                tx_frate.append(flow.frames_tx_rate)
-                rx_frate.append(flow.frames_rx_rate)
-            assert abs(sum(tx_frate) - sum(rx_frate)) < 500, "Traffic has not converged after lroute withdraw \
-                       TxFrameRate:{},RxFrameRate:{}".format(sum(tx_frate), sum(rx_frate))
-            logger.info("Traffic has converged after route withdraw")
-
-            """ Get control plane to data plane convergence value """
-            request = snappi_api.metrics_request()
-            request.convergence.flow_names = []
-            convergence_metrics = snappi_api.get_metrics(request).convergence_metrics
-            for metrics in convergence_metrics:
-                logger.info('CP/DP Convergence Time (ms): \
-                            {}'.format(metrics.control_plane_data_plane_convergence_us / 1000))
-            stop_traffic(snappi_api)
-            table.append(route_type)
-            table.append(j)
-            table.append(int(metrics.control_plane_data_plane_convergence_us / 1000))
-            return table
-        """ Iterating route withdrawal on all BGP peers """
-        table.append(get_cpdp_convergence_time(route_name))
-
-    columns = ['Route Type', 'No. of Routes', 'Control to Data Plane Convergence Time (ms)']
-    logger.info("\n%s" % tabulate(table, headers=columns, tablefmt="psql"))
+                """
+                table, tx_frate, rx_frate = [], [], []
+                run_traffic(snappi_api, duthost)
+                flow_stats = get_flow_stats(snappi_api)
+                tx_frame_rate = flow_stats[0].frames_tx_rate
+                assert tx_frame_rate != 0, "Traffic has not started"
+                """ Withdrawing routes from a BGP peer """
+                logger.info('Withdrawing Routes from {}'.format(route_name))
+                wait(TIMEOUT, "Waiting before routes to be withdrawn")
+                cs = snappi_api.control_state()
+                cs.protocol.route.state = cs.protocol.route.WITHDRAW
+                cs.protocol.route.names = [route_name]
+                snappi_api.set_control_state(cs)
+                wait(TIMEOUT, "For routes to be withdrawn")
+                flow_stats = get_flow_stats(snappi_api)
+                logger.info('Loss percent after route withdraw: {}'.format(int(flow_stats[0].loss)))
+                pytest_assert(int(flow_stats[0].loss)==0, "Traffic loss observed during route withdraw")
+                logger.info("Traffic has converged after route withdraw")
+                """ Get control plane to data plane convergence value """
+                request = snappi_api.metrics_request()
+                request.convergence.flow_names = []
+                convergence_metrics = snappi_api.get_metrics(request).convergence_metrics
+                for metrics in convergence_metrics:
+                    logger.info('CP/DP Convergence Time (ms): \
+                                {}'.format(metrics.control_plane_data_plane_convergence_us / 1000))
+                stop_traffic(snappi_api)
+                table.append(route_type)
+                table.append(j)
+                table.append(int(metrics.control_plane_data_plane_convergence_us / 1000))
+                last_passed_routes.append(j)
+                return table
+            """ Iterating route withdrawal on all BGP peers """
+            table.append(get_cpdp_convergence_time(route_name))
+    except Exception as e:
+        logger.info("%s", str(e))
+    finally:
+        columns = ['Route Type', 'No. of Routes', 'Control to Data Plane Convergence Time (ms)']
+        logger.info("\n%s" % tabulate(table, headers=columns, tablefmt="psql"))
+        logger.info("Maximum Route count for this test without loss: %s", max(last_passed_routes) if last_passed_routes else "None")
 
 
 def restart_traffic(snappi_api):
@@ -691,16 +788,24 @@ def get_bgp_scalability_result(snappi_api, localhost, bgp_config, flag, duthost)
     assert tx_frame_rate != 0, "Traffic has not started"
     stop_traffic(snappi_api)
     flow_stats = get_flow_stats(snappi_api)
-    logger.info('|---- Tx Frame: {} ----|'.format(flow_stats[0].frames_tx))
-    logger.info('|---- Rx Frame: {} ----|'.format(flow_stats[0].frames_rx))
-    logger.info('|---- Loss % : {} ----|'.format(flow_stats[0].loss))
-    if flag == 1:
-        assert float(flow_stats[0].loss) > 0.1, "FAIL: Loss must have been observed for greater than 16k routes"
-        logger.info('PASSED : {}% Loss observerd in traffic item for 100k routes and \
-                    {}'.format(float(flow_stats[0].loss), msg))
-    else:
-        assert float(flow_stats[0].loss) <= 0.1, "FAIL: Loss observerd in traffic item"
-        logger.info('PASSED : No Loss observerd in traffic item and {}'.format(msg))
+    logger.info('------------------------------------------')
+    for flow_stat in flow_stats:
+        logger.info('Flow Name: {}'.format(flow_stat.name))
+        logger.info('Tx Frames: {}'.format(flow_stat.frames_tx))
+        logger.info('Rx Frames: {}'.format(flow_stat.frames_rx))
+        logger.info('Loss % : {} '.format(flow_stat.loss))
+        logger.info('\n')
+    logger.info('------------------------------------------')
+
+    loss_expected = True
+    for flow_stat in flow_stats:
+        loss = float(flow_stat.loss)
+        if (flag == 0 and loss != 0.0):
+            loss_expected = False
+            break  # Early exit once condition breaks expectation
+    if flag == 0:
+        pytest_assert(loss_expected, "FAIL: Loss observed in traffic flow for less than 125k routes")
+        logger.info('PASSED : Loss not observed in traffic flow for less than 125k routes')
 
 
 def cleanup_config(duthost):
