@@ -333,7 +333,9 @@ def __portchannel_intf_config(config, port_config_list, duthost, snappi_ports):
         v4_entry = next((e for e in entries if __valid_ipv4_addr(e['addr'])), None)
         v6_entry = next((e for e in entries if not __valid_ipv4_addr(e['addr'])), None)
 
-        member_port_ids = [i for i, sp in enumerate(snappi_ports) for m in members if sp['peer_port'] == m]
+        member_port_ids = [int(sp['port_id']) for sp in (snappi_ports) for m in members if
+                           ((sp['peer_port'] == m) and (sp['peer_device'] == duthost.hostname))]
+
         if not member_port_ids:
             continue
         last_byte = _next_system_id & 0xFF
