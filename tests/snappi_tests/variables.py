@@ -170,6 +170,11 @@ TOPOLOGY_T2_PIZZABOX = 'T2_PIZZABOX'
 #   BACKUP_T2_SNAPPI_AS_NUM (65300): Backup T2 DUTs emulated via Snappi on downlink side
 #   LOWER_TIER_DUT_AS_NUM (65200): Lower tier DUT AS number
 T2_DUT_AS_NUM = 65100
+UPPER_TIER_SNAPPI_AS_NUM = 65400
+BACKUP_T2_SNAPPI_AS_NUM = 65300
+LOWER_TIER_DUT_AS_NUM = 65200
+
+# BGP Configuration
 BGP_TYPE = 'ebgp'
 SNAPPI_TRIGGER = 60  # timeout value for snappi operation
 DUT_TRIGGER = 180    # longer timeout value for dut operation
