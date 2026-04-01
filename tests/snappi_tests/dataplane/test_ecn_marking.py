@@ -1,5 +1,5 @@
 from tests.snappi_tests.dataplane.imports import *  # noqa: F401, F403, F405
-from snappi_tests.dataplane.files.helperv2 import get_duthost_interface_details, create_snappi_config, \
+from snappi_tests.dataplane.files.helper import get_duthost_interface_details, create_snappi_config, \
     get_snappi_stats, set_primary_chassis, create_traffic_items, start_stop  # noqa: F401, F403, F405, E402
 from tests.common.snappi_tests.snappi_helpers import wait_for_arp
 
