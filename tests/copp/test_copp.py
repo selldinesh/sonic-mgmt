@@ -94,12 +94,8 @@ class TestCOPP(object):
     feature_name = "bgp"
 
     @pytest.mark.parametrize("protocol", ["ARP",
-                                          "IP2ME",
-                                          "SNMP",
-                                          "SSH",
                                           "DHCP",
                                           "DHCP6",
-                                          "BGP",
                                           "LACP",
                                           "LLDP",
                                           "UDLD",
@@ -116,7 +112,7 @@ class TestCOPP(object):
         # UDLD packet will not be forwarded to DUT
         if 'UDLD' == protocol:
             for fanouthost in list(fanouthosts.values()):
-                if fanouthost.get_fanout_os() == 'sonic' and "arista_7060x6_64pe_b" in fanouthost.facts["platform"]:
+                if fanouthost.get_fanout_os() == 'sonic' and "arista_7060x6_64pe" in fanouthost.facts["platform"]:
                     pytest.skip("Skip UDLD test for Arista-7060x6 fanout without UDLD forward support")
 
         duthost = duthosts[enum_rand_one_per_hwsku_frontend_hostname]
@@ -141,11 +137,38 @@ class TestCOPP(object):
                     pytest_assert(not trap_installed,
                                   f"Trap {trap_ids[0]} for protocol {protocol} is unexpectedly installed")
 
+        is_smartswitch_light_mode = False
+        if duthost.dut_basic_facts()['ansible_facts']['dut_basic_facts'].get("is_smartswitch"):
+            if "dhcp_server" in duthost.critical_services_status():
+                is_smartswitch_light_mode = True
+
         _copp_runner(duthost,
                      ptfhost,
                      protocol,
                      copp_testbed,
-                     dut_type)
+                     dut_type,
+                     is_smartswitch_light_mode=is_smartswitch_light_mode)
+
+    @pytest.mark.parametrize("protocol", ["IP2ME",
+                                          "SNMP",
+                                          "SSH",
+                                          "BGP"])
+    def test_policer_mtu(self, protocol, duthosts, enum_rand_one_per_hwsku_frontend_hostname,
+                         ptfhost, copp_testbed, dut_type, packet_size):
+        """
+            Validates that rate-limited COPP groups work as expected.
+
+            Checks that the policer enforces the rate limit for protocols
+            that can receive packets with different sizes and have a set rate
+            limit.
+        """
+        duthost = duthosts[enum_rand_one_per_hwsku_frontend_hostname]
+        _copp_runner(duthost,
+                     ptfhost,
+                     protocol,
+                     copp_testbed,
+                     dut_type,
+                     packet_size=packet_size)
 
     @pytest.mark.disable_loganalyzer
     def test_trap_neighbor_miss(self, duthosts, enum_rand_one_per_hwsku_frontend_hostname,
@@ -371,6 +394,9 @@ def copp_testbed(
     # Store test_params in the TestCOPP class
     TestCOPP.test_params = test_params
 
+    if duthost.get_mgmt_ip()["version"] == "v6":
+        pytest.skip("mgmt IPv6 only runs are not supported for COPP tests")
+
     if not is_backend_topology:
         # There is no upstream neighbor in T1 backend topology. Test is skipped on T0 backend.
         # For Non T2 topologies, setting upStreamDuthost as duthost to cover dualTOR and MLAG scenarios.
@@ -410,13 +436,12 @@ def ignore_expected_loganalyzer_exceptions(enum_rand_one_per_hwsku_frontend_host
 
 
 def _copp_runner(dut, ptf, protocol, test_params, dut_type, has_trap=True,
-                 ip_version="4"):    # noqa: F811
+                 ip_version="4", packet_size=100, is_smartswitch_light_mode=False):    # noqa: F811
     """
         Configures and runs the PTF test cases.
     """
 
     is_ipv4 = True if ip_version == "4" else False
-
     params = {"verbose": False,
               "target_port": test_params.nn_target_port,
               "myip": test_params.myip if is_ipv4 else test_params.myip6,
@@ -427,9 +452,11 @@ def _copp_runner(dut, ptf, protocol, test_params, dut_type, has_trap=True,
               "has_trap": has_trap,
               "hw_sku": dut.facts["hwsku"],
               "asic_type": dut.facts["asic_type"],
+              "is_smartswitch_light_mode": is_smartswitch_light_mode,
               "platform": dut.facts["platform"],
               "topo_type": test_params.topo_type,
               "ip_version": ip_version,
+              "packet_size": packet_size,
               "neighbor_miss_trap_supported": test_params.neighbor_miss_trap_supported}
 
     dut_ip = dut.mgmt_ip
